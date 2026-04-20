@@ -1,0 +1,158 @@
+<div class="page-content">
+  <a routerLink="/demandes/mes-demandes" class="back-link">
+    <i class="bi bi-arrow-left"></i>
+    <span>Mes demandes</span>
+  </a>
+
+  <div class="card-container">
+    <header class="card-header-custom">
+      <div class="header-text">
+        <h1 class="add-title">Nouvelle demande d'évolution</h1>
+        <p class="add-subtitle">Décrivez clairement votre besoin pour qu'il soit traité rapidement.</p>
+      </div>
+      <button type="button" class="btn-close-custom" (click)="onCancel()" aria-label="Fermer">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </header>
+
+    <div class="card-body-custom">
+      <form [formGroup]="demandeForm" (ngSubmit)="onSubmit()">
+        <section class="form-section">
+          <h2 class="form-section-title"><i class="bi bi-pencil-square"></i> Contenu</h2>
+          <div class="form-group">
+            <label for="objet">Titre de la demande <span class="required">*</span></label>
+            <input
+              id="objet"
+              type="text"
+              class="form-control-custom"
+              placeholder="Ex. : Ajout d'un nouveau champ dans le formulaire"
+              formControlName="objet"
+            />
+            <p class="invalid-feedback" *ngIf="demandeForm.controls['objet'].touched && demandeForm.controls['objet'].invalid">
+              Le titre est obligatoire.
+            </p>
+          </div>
+          <div class="form-group">
+            <label for="description">Description détaillée <span class="required">*</span></label>
+            <textarea
+              id="description"
+              class="form-control-custom"
+              rows="5"
+              placeholder="Décrivez en détail votre demande d'évolution..."
+              formControlName="description"
+            ></textarea>
+            <p class="invalid-feedback" *ngIf="demandeForm.controls['description'].touched && demandeForm.controls['description'].invalid">
+              La description est obligatoire.
+            </p>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h2 class="form-section-title"><i class="bi bi-gear"></i> Contexte</h2>
+          <div class="form-row">
+            <div class="form-group form-half">
+              <label for="codeapp">Application concernée <span class="required">*</span></label>
+              <select id="codeapp" class="form-select-custom" formControlName="codeapp">
+                <option value="" disabled>Sélectionner une application</option>
+                <option *ngFor="let app of applications" [value]="app.code">{{ app.libelle }}</option>
+              </select>
+              <p class="invalid-feedback" *ngIf="demandeForm.controls['codeapp'].touched && demandeForm.controls['codeapp'].invalid">
+                L'application est obligatoire.
+              </p>
+            </div>
+            <div class="form-group form-half">
+              <label for="codeDepartement">Département <span class="required">*</span></label>
+              <input
+                id="codeDepartement"
+                type="text"
+                class="form-control-custom"
+                placeholder="Ex. : Département SI"
+                formControlName="codeDepartement"
+              />
+              <p class="invalid-feedback" *ngIf="demandeForm.controls['codeDepartement'].touched && demandeForm.controls['codeDepartement'].invalid">
+                Le département est obligatoire.
+              </p>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group form-half">
+              <label for="typedemande">Type de demande <span class="required">*</span></label>
+              <select id="typedemande" class="form-select-custom" formControlName="typedemande">
+                <option value="" disabled>Sélectionner un type</option>
+                <option *ngFor="let t of demandeTypeOptions" [value]="t.value">{{ t.label }}</option>
+              </select>
+              <span class="form-hint">Configuration ou réglage des applications existantes</span>
+              <p class="invalid-feedback" *ngIf="demandeForm.controls['typedemande'].touched && demandeForm.controls['typedemande'].invalid">
+                Le type de demande est obligatoire.
+              </p>
+            </div>
+            <div class="form-group form-half">
+              <label for="codenp">Priorité <span class="required">*</span></label>
+              <select id="codenp" class="form-select-custom" formControlName="codenp">
+                <option value="" disabled>Sélectionner un niveau</option>
+                <option *ngFor="let np of niveauxPriorite" [value]="np.code">{{ np.libelle }}</option>
+              </select>
+              <p class="invalid-feedback" *ngIf="demandeForm.controls['codenp'].touched && demandeForm.controls['codenp'].invalid">
+                La priorité est obligatoire.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h2 class="form-section-title"><i class="bi bi-paperclip"></i> Pièce jointe</h2>
+          <div class="form-group">
+            <div
+              class="upload-dropzone"
+              [class.is-dragover]="isDragOver"
+              (dragover)="onDragOver($event)"
+              (dragleave)="onDragLeave($event)"
+              (drop)="onDrop($event)"
+            >
+              <input
+                id="fileInput"
+                type="file"
+                multiple
+                class="upload-input"
+                (change)="onFileSelected($event)"
+                [disabled]="isSubmitting"
+              />
+              <div class="upload-icon">
+                <i class="bi bi-cloud-arrow-up"></i>
+              </div>
+              <p class="upload-text">
+                Glissez-déposez un fichier ici ou <label class="upload-btn" for="fileInput">parcourir</label>
+              </p>
+              <span class="upload-formats">PNG, PDF, JPG, DOCX acceptés</span>
+              <div class="upload-filename" *ngIf="selectedFileName">
+                <i class="bi bi-file-earmark-check"></i>
+                {{ selectedFileName }}
+                <span *ngIf="selectedFileNames.length > 1">
+                  ({{ selectedFileNames.length }} fichiers sélectionnés)
+                </span>
+              </div>
+            </div>
+            <p class="invalid-feedback" *ngIf="demandeForm.controls['file']?.touched && demandeForm.controls['file'].invalid">
+              Une pièce jointe est requise.
+            </p>
+          </div>
+        </section>
+
+        <div class="info-box">
+          <i class="bi bi-info-circle"></i>
+          <p><strong>Note :</strong> Votre demande sera analysée par le département SI qui déterminera le traitement approprié (paramétrage interne ou redirection vers un partenaire externe).</p>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" (click)="onCancel()" [disabled]="isSubmitting">
+            Annuler
+          </button>
+          <button type="submit" class="btn btn-primary-custom" [disabled]="demandeForm.invalid || isSubmitting">
+            <span *ngIf="!isSubmitting"><i class="bi bi-plus-circle"></i> Créer la demande</span>
+            <span *ngIf="isSubmitting" class="btn-loading"><i class="bi bi-arrow-repeat spin"></i> Création en cours…</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,471 @@
+<div class="admin-page">
+  <!-- Hero Header -->
+  <header class="admin-hero">
+    <div class="admin-hero-content">
+      <div class="admin-hero-text">
+        <h1 class="admin-hero-title">
+          <i class="bi bi-shield-check"></i>
+          Administration
+        </h1>
+        <p class="admin-hero-subtitle">Gestion des utilisateurs, partenaires et configuration système</p>
+      </div>
+      <div class="admin-hero-stats">
+        <div class="stat-card">
+          <span class="stat-value">{{ users.length }}</span>
+          <span class="stat-label">Utilisateurs</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ partners?.length || 0 }}</span>
+          <span class="stat-label">Partenaires</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ applications.length }}</span>
+          <span class="stat-label">Applications</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- État de chargement -->
+  <div *ngIf="isLoading" class="parametre-loading" aria-live="polite">
+    <div class="parametre-loading-spinner"></div>
+    <p class="parametre-loading-text">Chargement des paramètres...</p>
+  </div>
+
+  <!-- Main Content -->
+  <div class="admin-main" *ngIf="!isLoading">
+    <nav class="admin-tabs">
+      <button class="admin-tab" [class.active]="activeTab === 'users'" (click)="activeTab = 'users'" type="button">
+        <i class="bi bi-people"></i>
+        <span>Utilisateurs</span>
+      </button>
+      <button class="admin-tab" [class.active]="activeTab === 'partners'" (click)="activeTab = 'partners'" type="button">
+        <i class="bi bi-handshake"></i>
+        <span>Partenaires</span>
+      </button>
+      <button class="admin-tab" [class.active]="activeTab === 'apps'" (click)="activeTab = 'apps'" type="button">
+        <i class="bi bi-grid-3x3-gap"></i>
+        <span>Applications</span>
+      </button>
+      <button class="admin-tab" [class.active]="activeTab === 'system'" (click)="activeTab = 'system'" type="button">
+        <i class="bi bi-gear"></i>
+        <span>Configuration</span>
+      </button>
+    </nav>
+
+    <!-- USERS TAB -->
+    <section class="admin-panel" *ngIf="activeTab === 'users'">
+      <div class="panel-top">
+        <div class="panel-heading">
+          <h2 class="panel-title">Utilisateurs</h2>
+          <p class="panel-subtitle">{{ filteredUsers.length }} utilisateur(s) sur {{ users.length }} (Active Directory)</p>
+        </div>
+      </div>
+
+      <div class="search-bar">
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Rechercher par nom, email, département..."
+            [(ngModel)]="searchTerm" (input)="filterUsers()">
+          <button *ngIf="searchTerm" type="button" (click)="searchTerm = ''; filterUsers()" class="search-clear">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Utilisateur</th>
+              <th>Rôle</th>
+              <th>Statut</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of paginatedUsers" [class.inactive]="!isUserActive(user.status)">
+              <td>
+                <div class="user-cell">
+                  <span class="user-avatar">{{ (user.cn || user.username || '?')[0] | uppercase }}</span>
+                  <div>
+                    <span class="user-name">{{ user.cn || user.username || 'N/A' }}</span>
+                    <span class="user-email" *ngIf="user.email">{{ user.email }}</span>
+                  </div>
+                </div>
+              </td>
+              <td><span class="badge badge-role">{{ getDisplayRoles(user) }}</span></td>
+              <td><span class="badge" [ngClass]="getStatusClass(user.status)">{{ getStatusLabel(user.status) }}</span></td>
+              <td>
+                <button class="btn-icon" type="button" (click)="openUserModal(user)" title="Modifier les rôles">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="empty-state" *ngIf="filteredUsers.length === 0 && searchTerm">
+          <i class="bi bi-search"></i>
+          <p>Aucun utilisateur ne correspond à votre recherche</p>
+          <button class="btn-secondary" type="button" (click)="searchTerm = ''; filterUsers()">Réinitialiser</button>
+        </div>
+        <div class="empty-state" *ngIf="users.length === 0 && !searchTerm">
+          <i class="bi bi-people"></i>
+          <p>Aucun utilisateur trouvé</p>
+        </div>
+      </div>
+
+      <div class="pagination" *ngIf="filteredUsers.length > 0">
+        <span class="pagination-info">
+          {{ (currentPage - 1) * itemsPerPage + 1 }}-{{ Math.min(currentPage * itemsPerPage, filteredUsers.length) }} sur {{ filteredUsers.length }}
+        </span>
+        <div class="pagination-btns">
+          <button type="button" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <span class="pagination-page">Page {{ currentPage }}/{{ totalPages }}</span>
+          <button type="button" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- APPLICATIONS TAB -->
+    <section class="admin-panel" *ngIf="activeTab === 'apps'">
+      <div class="panel-top">
+        <div class="panel-heading">
+          <h2 class="panel-title">Applications / Équipes SI</h2>
+          <p class="panel-subtitle">Applications à gérer (équipes SI). Ajoutez une application avec code et libellé.</p>
+        </div>
+        <button class="btn-primary" type="button" (click)="openAppModal()">
+          <i class="bi bi-plus"></i>
+          Ajouter une application
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Libellé</th>
+              <th>Actif</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let app of applications">
+              <td><span class="badge badge-role">{{ app.code || '—' }}</span></td>
+              <td>{{ app.libelle || '—' }}</td>
+              <td>
+                <span class="badge" [class.badge-success]="app.active" [class.badge-warning]="app.active === false">
+                  {{ app.active ? 'Actif' : 'Inactif' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="empty-state" *ngIf="applications.length === 0">
+          <i class="bi bi-grid-3x3-gap"></i>
+          <p>Aucune application. Cliquez sur « Ajouter une application » pour en créer une.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PARTNERS TAB -->
+    <section class="admin-panel" *ngIf="activeTab === 'partners'">
+      <div class="panel-top">
+        <div class="panel-heading">
+          <h2 class="panel-title">Partenaires externes</h2>
+          <p class="panel-subtitle">Gestion des partenaires et leurs applications</p>
+        </div>
+        <button class="btn-primary" type="button" (click)="openPartnerModal()">
+          <i class="bi bi-plus"></i>
+          Ajouter un partenaire
+        </button>
+      </div>
+
+      <div class="partners-grid">
+        <article class="partner-card" *ngFor="let partner of partners">
+          <div class="partner-header">
+            <div class="partner-info">
+              <h3 class="partner-name">{{ partner.nom }}</h3>
+              <p class="partner-email">{{ partner.emailContact }}</p>
+            </div>
+            <span class="badge" [class.badge-success]="partner.actif" [class.badge-warning]="!partner.actif">
+              {{ partner.actif ? 'Actif' : 'Inactif' }}
+            </span>
+          </div>
+          <div class="partner-tags" *ngIf="partner.type">
+            <span class="tag">{{ partner.type }}</span>
+          </div>
+          <div class="partner-actions">
+            <button class="btn-link" type="button" (click)="openPartnerModal(partner)">Modifier</button>
+          </div>
+        </article>
+      </div>
+
+      <div class="empty-state" *ngIf="!partners || partners.length === 0">
+        <i class="bi bi-handshake"></i>
+        <p>Aucun partenaire trouvé</p>
+      </div>
+    </section>
+
+    <!-- SYSTEM CONFIG TAB -->
+    <section class="admin-panel" *ngIf="activeTab === 'system'">
+      <div class="panel-top">
+        <div class="panel-heading">
+          <h2 class="panel-title">Configuration système</h2>
+          <p class="panel-subtitle">Paramètres de l'application et intégrations</p>
+        </div>
+      </div>
+
+      <div class="system-grid">
+        <article class="system-card" *ngFor="let cfg of systemConfigs" (click)="onSystemConfigClick(cfg)">
+          <div class="system-card-icon">
+            <i [class]="'bi ' + cfg.icon"></i>
+          </div>
+          <div class="system-card-body">
+            <span class="system-card-category" *ngIf="cfg.category">{{ cfg.category }}</span>
+            <h3 class="system-card-title">{{ cfg.title }}</h3>
+            <p class="system-card-desc">{{ cfg.subtitle }}</p>
+          </div>
+          <i class="bi bi-chevron-right system-card-arrow"></i>
+        </article>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- USER EDIT MODAL -->
+<div class="modal-overlay" *ngIf="showUserModal" (click)="closeUserModal()">
+  <div class="modal-content user-edit-modal" (click)="$event.stopPropagation()">
+    <div class="user-modal-header">
+      <div class="user-modal-avatar">
+        <i class="bi bi-person-circle"></i>
+      </div>
+      <div class="user-modal-title-block">
+        <h2 class="user-modal-title">{{ editingUser?.cn || editingUser?.username }}</h2>
+        <p class="user-modal-subtitle">{{ editingUser?.email }}</p>
+      </div>
+      <button class="modal-close" type="button" (click)="closeUserModal()" aria-label="Fermer">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+
+    <div class="modal-body" *ngIf="editingUser">
+      <div class="user-modal-info">
+        <div class="user-info-row">
+          <span class="user-info-icon"><i class="bi bi-building"></i></span>
+          <span class="user-info-text">{{ editingUser.dept || 'Non renseigné' }}</span>
+        </div>
+        <div class="user-info-row">
+          <span class="user-info-icon"><i class="bi bi-person-check"></i></span>
+          <span class="user-info-text">
+            État :
+            <span class="badge" [ngClass]="getStatusClass(editingUser.status)">
+              {{ getStatusLabel(editingUser.status) }}
+            </span>
+          </span>
+        </div>
+        <div class="user-info-row">
+          <button
+            class="btn-secondary"
+            type="button"
+            (click)="toggleEditingUserStatus()"
+            [disabled]="isSavingUser || isSavingEquipe || isChangingUserStatus">
+            <span *ngIf="!isChangingUserStatus">{{ getToggleStatusButtonLabel(editingUser.status) }}</span>
+            <span *ngIf="isChangingUserStatus"><i class="bi bi-arrow-repeat spin"></i> Mise à jour...</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="user-modal-roles-section">
+        <h3 class="user-modal-section-title">
+          <i class="bi bi-person-badge"></i>
+          Rôles assignés
+        </h3>
+        <p class="user-modal-hint">Cliquez sur <i class="bi bi-x"></i> pour supprimer un rôle</p>
+        <div class="user-roles-chips">
+          <span *ngFor="let role of displayedUserRoles" class="role-chip">
+            {{ role }}
+            <button type="button" class="role-chip-remove" (click)="removeRoleFromUser(role)"
+              title="Supprimer ce rôle" [disabled]="isSavingUser || isSavingEquipe">
+              <i class="bi bi-x"></i>
+            </button>
+          </span>
+        </div>
+      </div>
+
+      <div class="user-modal-add-roles" *ngIf="availableRolesToAdd.length > 0">
+        <h3 class="user-modal-section-title">
+          <i class="bi bi-plus-circle"></i>
+          Ajouter un rôle
+        </h3>
+        <div class="user-roles-add-list">
+          <button *ngFor="let role of availableRolesToAdd" type="button" class="role-add-btn"
+            (click)="addRoleToUser(role)" [disabled]="isSavingUser || isSavingEquipe">
+            <i class="bi bi-plus"></i>
+            {{ role }}
+          </button>
+        </div>
+      </div>
+
+      <div class="user-modal-equipes-section">
+        <h3 class="user-modal-section-title">
+          <i class="bi bi-people"></i>
+          Équipes SI
+        </h3>
+        <p class="user-modal-hint">Équipes auxquelles l'utilisateur est assigné (ex. SI_ERP, SI_SAGE)</p>
+        <div class="user-roles-chips">
+          <span *ngFor="let eq of displayedUserEquipes" class="role-chip equipe-chip">
+            {{ eq }}
+            <button type="button" class="role-chip-remove" (click)="removeUserFromEquipe(eq)"
+              title="Retirer de cette équipe" [disabled]="isSavingUser || isSavingEquipe">
+              <i class="bi bi-x"></i>
+            </button>
+          </span>
+        </div>
+        <div class="user-roles-add-list" *ngIf="availableEquipesToAdd.length > 0">
+          <button *ngFor="let eq of availableEquipesToAdd" type="button" class="role-add-btn"
+            (click)="assignUserToEquipe(eq)" [disabled]="isSavingUser || isSavingEquipe">
+            <i class="bi bi-plus"></i>
+            Assigner à {{ eq }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="user-modal-footer">
+      <button class="btn-secondary" type="button" (click)="closeUserModal()" [disabled]="isSavingUser || isSavingEquipe">
+        Annuler
+      </button>
+      <button class="btn-primary" type="button" (click)="assignRoleToUser()"
+        [disabled]="isSavingUser || isSavingEquipe || !editingUser">
+        <i class="bi bi-check-lg"></i> Enregistrer
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PARTNER MODAL -->
+<div class="modal-overlay" *ngIf="showPartnerModal" (click)="closePartnerModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        {{ (editingPartner?.id !== null && editingPartner?.id !== undefined) ? 'Modifier' : 'Ajouter' }} un partenaire
+      </h2>
+      <button class="modal-close" type="button" (click)="closePartnerModal()">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+
+    <div class="modal-body" *ngIf="editingPartner">
+      <div class="form-section">
+        <label class="form-label">Nom du partenaire *</label>
+        <input type="text" class="form-control" [(ngModel)]="editingPartner.nom" placeholder="Ex: TechSolutions"
+          required>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">Email *</label>
+        <input type="email" class="form-control" [(ngModel)]="editingPartner.emailContact"
+          placeholder="contact@exemple.fr" required>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">Type</label>
+        <input type="text" class="form-control" [(ngModel)]="editingPartner.type" placeholder="Ex: Prestataire, Intégrateur...">
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">Applications (équipes SI)</label>
+        <div class="user-roles-add-list" *ngIf="applications.length > 0; else noApps">
+          <button
+            *ngFor="let app of applications"
+            type="button"
+            class="role-add-btn"
+            [class.active]="isPartnerApplicationSelected(app.id)"
+            (click)="togglePartnerApplication(app.id)"
+            [disabled]="isSavingPartner || app.active === false"
+            [title]="app.active === false ? 'Application inactive' : 'Cliquer pour sélectionner/désélectionner'">
+            <i class="bi" [class.bi-check-circle-fill]="isPartnerApplicationSelected(app.id)" [class.bi-circle]="!isPartnerApplicationSelected(app.id)"></i>
+            {{ (app.code || '—') + ' - ' + (app.libelle || '') }}
+          </button>
+        </div>
+        <ng-template #noApps>
+          <div class="empty-state" style="padding: 12px;">
+            <p>Aucune application disponible. Ajoutez d’abord une application dans l’onglet « Applications ».</p>
+          </div>
+        </ng-template>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">URL Webhook</label>
+        <input type="url" class="form-control" [(ngModel)]="editingPartner.webhookUrl"
+          placeholder="https://exemple.fr/webhook">
+      </div>
+
+      <div class="form-section">
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="editingPartner.actif" class="checkbox-input">
+          <span class="checkbox-custom"></span>
+          Partenaire actif
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" type="button" (click)="closePartnerModal()">Annuler</button>
+      <button class="btn-primary" type="button" (click)="savePartner()"
+        [disabled]="isSavingPartner || !editingPartner?.nom || !editingPartner?.emailContact">
+        <i class="bi bi-check-lg"></i> Enregistrer
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- APPLICATION CREATE MODAL -->
+<div class="modal-overlay" *ngIf="showAppModal" (click)="closeAppModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">Ajouter une application</h2>
+      <button class="modal-close" type="button" (click)="closeAppModal()">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+    <div class="modal-body" *ngIf="editingApp">
+      <div class="form-section">
+        <label class="form-label">Code *</label>
+        <input type="text" class="form-control" [(ngModel)]="editingApp.code" placeholder="Ex: SI_ERP, SI_SAGE"
+          required>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Libellé *</label>
+        <input type="text" class="form-control" [(ngModel)]="editingApp.libelle" placeholder="Ex: Équipe SI ERP"
+          required>
+      </div>
+      <div class="form-section">
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="editingApp.active" class="checkbox-input">
+          <span class="checkbox-custom"></span>
+          Application active
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" type="button" (click)="closeAppModal()" [disabled]="isSavingApp">Annuler</button>
+      <button
+        class="btn-secondary"
+        type="button"
+        (click)="saveAppAndOpenPartner()"
+        [disabled]="isSavingApp || !editingApp?.code?.trim() || !editingApp?.libelle?.trim()">
+        <i class="bi bi-link-45deg"></i> Enregistrer + Ajouter partenaire
+      </button>
+      <button class="btn-primary" type="button" (click)="saveApp()"
+        [disabled]="isSavingApp || !editingApp?.code?.trim() || !editingApp?.libelle?.trim()">
+        <i class="bi bi-check-lg"></i> Enregistrer
+      </button>
+    </div>
+  </div>
+</div>

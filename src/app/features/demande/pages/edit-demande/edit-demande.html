@@ -1,0 +1,177 @@
+<!-- Chargement -->
+<div class="edit-loading" *ngIf="isLoading">
+  <div class="edit-spinner"></div>
+  <p>Chargement de la demande...</p>
+</div>
+
+<!-- Page -->
+<div class="edit-page" *ngIf="!isLoading && demande">
+  <header class="edit-header">
+    <div class="edit-header-inner">
+      <button type="button" class="btn-back" (click)="goBack()">
+        <i class="bi bi-arrow-left"></i>
+        Retour
+      </button>
+      <div class="header-text">
+        <div class="header-topline">
+          <span class="ref">EVO-{{ demandeId }}</span>
+          <span class="sep">•</span>
+          <span class="muted">Modifier la demande</span>
+        </div>
+        <h1>{{ demande?.objet || 'Demande' }}</h1>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn ghost" (click)="goBack()">Annuler</button>
+        <button
+          type="submit"
+          class="btn primary"
+          form="editDemandeForm"
+          [disabled]="!canEditDemande || demandeForm.invalid || demandeForm.pristine || isSaving">
+          <span *ngIf="!isSaving"><i class="bi bi-check2"></i> Enregistrer</span>
+          <span *ngIf="isSaving"><i class="bi bi-arrow-repeat spin"></i> Enregistrement…</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="edit-layout">
+    <main class="edit-main">
+      <form
+        id="editDemandeForm"
+        class="edit-card"
+        [formGroup]="demandeForm"
+        (ngSubmit)="save()">
+        <div class="error" *ngIf="!canEditDemande">
+          Seul le demandeur peut modifier une demande en statut CREATED (initiée) ou A_CORRIGER_PAR_DEMANDEUR.
+        </div>
+        <div class="card-title">
+          <i class="bi bi-pencil-square"></i>
+          Informations principales
+        </div>
+
+        <div class="grid">
+          <div class="field col-12">
+            <label>Titre <span class="req">*</span></label>
+            <input
+              type="text"
+              class="control"
+              placeholder="Ex: Ajout d'un champ dans le formulaire"
+              formControlName="objet" />
+            <div class="error" *ngIf="demandeForm.controls['objet'].touched && demandeForm.controls['objet'].invalid">
+              Le titre est obligatoire (min. 3 caractères).
+            </div>
+          </div>
+
+          <div class="field col-12">
+            <label>Description <span class="req">*</span></label>
+            <textarea
+              class="control"
+              rows="6"
+              placeholder="Décrivez clairement le besoin, le contexte et le résultat attendu."
+              formControlName="description"></textarea>
+            <div class="error" *ngIf="demandeForm.controls['description'].touched && demandeForm.controls['description'].invalid">
+              La description est obligatoire (min. 10 caractères).
+            </div>
+          </div>
+
+          <div class="field col-6">
+            <label>Application <span class="req">*</span></label>
+            <select class="control" formControlName="codeapp">
+              <option value="" disabled>Sélectionner une application</option>
+              <option *ngFor="let app of applications" [value]="app.code">{{ app.libelle || app.nom || app.code }}</option>
+            </select>
+            <div class="error" *ngIf="demandeForm.controls['codeapp'].touched && demandeForm.controls['codeapp'].invalid">
+              Sélectionnez une application.
+            </div>
+          </div>
+
+          <div class="field col-6">
+            <label>Priorité <span class="req">*</span></label>
+            <select class="control" formControlName="codenp">
+              <option value="" disabled>Sélectionner un niveau</option>
+              <option *ngFor="let np of niveauxPriorite" [value]="np.code">{{ np.libelle || np.code }}</option>
+            </select>
+            <div class="error" *ngIf="demandeForm.controls['codenp'].touched && demandeForm.controls['codenp'].invalid">
+              Sélectionnez une priorité.
+            </div>
+          </div>
+
+          <div class="field col-6">
+            <label>Département <span class="req">*</span></label>
+            <input type="text" class="control" placeholder="Ex: SI" formControlName="codeDepartement" />
+            <div class="error" *ngIf="demandeForm.controls['codeDepartement'].touched && demandeForm.controls['codeDepartement'].invalid">
+              Le département est obligatoire.
+            </div>
+          </div>
+
+          <div class="field col-6">
+            <label>Type de demande <span class="req">*</span></label>
+            <select class="control" formControlName="typedemande" [disabled]="isTypeDemandeLocked">
+              <option value="" disabled>Sélectionner un type</option>
+              <option value="PARAMETRABLE">Paramétrage</option>
+              <option value="EVOLUTION">Évolution</option>
+            </select>
+            <div class="help">Choisissez le type le plus proche du besoin.</div>
+            <div class="help" *ngIf="isTypeDemandeLocked">
+              Le type de demande ne peut pas être modifié quand le statut est A_CORRIGER_PAR_DEMANDEUR.
+            </div>
+                        <div class="error" *ngIf="demandeForm.controls['typedemande'].touched && demandeForm.controls['typedemande'].invalid">
+              Sélectionnez un type.
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <button type="button" class="btn ghost" (click)="goBack()">Annuler</button>
+          <button type="submit" class="btn primary" [disabled]="!canEditDemande || demandeForm.invalid || demandeForm.pristine || isSaving">
+            <span *ngIf="!isSaving"><i class="bi bi-check2"></i> Enregistrer</span>
+            <span *ngIf="isSaving"><i class="bi bi-arrow-repeat spin"></i> Enregistrement…</span>
+          </button>
+        </div>
+      </form>
+    </main>
+
+    <aside class="edit-side">
+      <div class="side-card">
+        <div class="side-title"><i class="bi bi-paperclip"></i> Pièces jointes</div>
+
+        <div class="docs" *ngIf="demande.documents && demande.documents.length; else noDocs">
+          <a class="doc" *ngFor="let doc of demande.documents" [href]="getDocumentDownloadUrl(doc)" target="_blank" rel="noopener">
+            <i class="bi bi-file-earmark"></i>
+            <span class="doc-name">{{ doc.nomFichier }}</span>
+            <i class="bi bi-download"></i>
+          </a>
+        </div>
+        <ng-template #noDocs>
+          <div class="muted-block">Aucune pièce jointe.</div>
+        </ng-template>
+
+        <div
+          class="dropzone"
+          [class.dragover]="isDragOver"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event)">
+          <input id="fileInputEdit" type="file" class="file-input" (change)="onFileSelected($event)" />
+          <div class="dz-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+          <div class="dz-text">
+            <div>Déposez un fichier ici</div>
+            <small>ou cliquez pour choisir</small>
+          </div>
+          <label class="dz-btn" for="fileInputEdit">Choisir</label>
+          <div class="dz-file" *ngIf="selectedFileName">
+            <span>{{ selectedFileName }}</span>
+            <button type="button" class="dz-remove" (click)="removeSelectedFile()" title="Retirer">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="side-hint">
+          <i class="bi bi-info-circle"></i>
+          La pièce jointe sélectionnée sera ajoutée après l’enregistrement.
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>

@@ -1,0 +1,90 @@
+
+<aside class="sidebar d-flex flex-column">
+  <!-- Logo / App -->
+  <div class="sidebar-header d-flex align-items-center justify-content-between px-3">
+    <div class="d-flex align-items-center gap-2">
+      <div class="app-icon">
+        <img
+          ngSrc="assets/logo/logo_mauritel.png"
+          width="120"
+          height="72"
+          priority
+          alt="Mauritel Logo"
+        />
+      </div>
+      <div>
+        <div class="fw-semibold">Évolutions SI</div>
+        <small class="text-muted">Gestion centralisée</small>
+      </div>
+    </div>
+  </div>
+
+  <hr class="my-2">
+
+  <!-- User -->
+  <!-- <div class="user-info d-flex align-items-center gap-3">
+    <div class="avatar">{{ userInitials }}</div>
+    <div>
+      <div class="fw-semibold">{{ connectedUserFullName }}</div>
+      <small class="text-muted">Utilisateur connecté</small>
+    </div>
+  </div> -->
+
+  <hr class="my-2">
+
+  <!-- Menu -->
+  <nav class="menu flex-grow-1 px-2">
+    <div class="menu-section-title">Général</div>
+    <a class="menu-item"
+       routerLink="/dashboard"
+       routerLinkActive="active"
+       [routerLinkActiveOptions]="{ exact: true }">
+      <i class="bi bi-grid"></i>
+      <span>Tableau de bord</span>
+    </a>
+
+    <div class="menu-section-title">Demandes</div>
+    <a class="menu-item"
+       routerLink="/demandes/mes-demandes"
+       routerLinkActive="active"
+       [routerLinkActiveOptions]="{ exact: false }">
+      <i class="bi bi-file-earmark-text"></i>
+      <span>Mes demandes</span>
+    </a>
+
+    <a class="menu-item"
+       routerLink="/demandes/nouvelle"
+       routerLinkActive="active"
+       [routerLinkActiveOptions]="{ exact: true }">
+      <i class="bi bi-plus-circle"></i>
+      <span>Nouvelle demande</span>
+    </a>
+
+    <ng-container *ngIf="showStatistiques">
+      <div class="menu-section-title">Analyse</div>
+      <a class="menu-item"
+         routerLink="/statistiques"
+         routerLinkActive="active"
+         [routerLinkActiveOptions]="{ exact: true }">
+        <i class="bi bi-bar-chart"></i>
+        <span>Statistiques</span>
+      </a>
+    </ng-container>
+
+    <ng-container *ngIf="showParametres">
+      <div class="menu-section-title">Administration</div>
+      <a class="menu-item"
+         routerLink="/parametre"
+         routerLinkActive="active"
+         [routerLinkActiveOptions]="{ exact: true }">
+        <i class="bi bi-gear"></i>
+        <span>Paramètres</span>
+      </a>
+    </ng-container>
+  </nav>
+
+  <!-- Footer -->
+  <div class="sidebar-footer text-center py-3">
+    <small class="text-muted">Version 1.0.0</small>
+  </div>
+</aside>

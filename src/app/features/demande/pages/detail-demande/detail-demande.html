@@ -1,0 +1,429 @@
+<!-- Chargement -->
+<div class="detail-loading" *ngIf="isLoading">
+  <div class="detail-spinner"></div>
+  <p>Chargement de la demande...</p>
+</div>
+
+<!-- Contenu principal -->
+<div class="detail-page" *ngIf="!isLoading && demande">
+  <!-- En-tête compact -->
+  <header class="detail-header">
+    <div class="detail-header-top">
+      <a routerLink="/demandes/mes-demandes" class="detail-back" title="Retour à la liste">
+        <i class="bi bi-arrow-left"></i>
+        <span>Mes demandes</span>
+      </a>
+      <span class="detail-ref">
+        {{
+          (demande.typedemande === 'PARAMETRABLE' ? 'PARMS' : 'EVO') + '-' + demande.id
+        }}
+      </span>
+    </div>
+    <h1 class="detail-title">{{ demande.objet }}</h1>
+    <div class="detail-badges">
+      <span class="badge badge-app">{{ getApplicationDisplay(demande.application) }}</span>
+      <span
+        class="badge badge-type-demande"
+        *ngIf="demande.typedemande"
+        [ngClass]="{
+          'badge-type-parametrable': demande.typedemande === 'PARAMETRABLE',
+          'badge-type-evolution': demande.typedemande === 'EVOLUTION'
+        }"
+      >
+        {{ demande.typedemande === 'PARAMETRABLE' ? 'Paramétrage' : demande.typedemande === 'EVOLUTION' ? 'Évolution' : demande.typedemande }}
+      </span>
+      <span class="badge" [ngClass]="getStatusClass(getDisplayStatut())">{{ getStatusLabel(getDisplayStatut()) }}</span>
+      <span class="badge" [ngClass]="getPriorityClass(demande.niveaupriorite)">{{ getPriorityLabel(demande.niveaupriorite) }}</span>
+    </div>
+    <div class="detail-meta">
+      <span><i class="bi bi-person"></i> {{ getCreatedByName() }}</span>
+      <span><i class="bi bi-calendar3"></i> {{ demande.datecreate | date:'dd MMM yyyy à HH:mm' }}</span>
+      <span *ngIf="demande.assignedTo"><i class="bi bi-person-check"></i> {{ demande.assignedTo }}</span>
+    </div>
+  </header>
+
+  <div class="detail-layout">
+    <!-- Colonne principale : description + onglets -->
+    <main class="detail-main">
+      <!-- Description (toujours visible, pas dans un onglet) -->
+      <section class="detail-section">
+        <h2 class="section-title"><i class="bi bi-file-text"></i> Description</h2>
+        <div class="description-block">
+          <p class="description-text">{{ demande.description || 'Aucune description.' }}</p>
+        </div>
+      </section>
+
+      <!-- Documents (si présents) -->
+      <section class="detail-section" *ngIf="getDocumentsList().length">
+        <h2 class="section-title"><i class="bi bi-paperclip"></i> Documents ({{ getDocumentsList().length }})</h2>
+        <ul class="doc-list">
+          <li class="doc-item" *ngFor="let doc of getDocumentsList()">
+            <i class="bi bi-file-earmark"></i>
+            <span>{{ getDocumentDisplayName(doc) }}</span>
+            <a
+              [href]="getDocumentDownloadUrl(doc)"
+              [attr.download]="getDocumentDisplayName(doc)"
+              rel="noopener"
+              class="doc-link"
+              title="Télécharger">
+              <i class="bi bi-download"></i>
+            </a>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Onglets Commentaires / Historique -->
+      <div class="detail-tabs">
+        <div class="tab-headers">
+          <button type="button" class="tab-btn" [class.active]="activeTab === 'commentaires'" (click)="setActiveTab('commentaires')">
+            <i class="bi bi-chat-dots"></i>
+            Commentaires
+            <span class="tab-count" *ngIf="demande.commentaires && demande.commentaires.length">{{ demande.commentaires.length }}</span>
+          </button>
+          <button type="button" class="tab-btn" [class.active]="activeTab === 'historique'" (click)="setActiveTab('historique')">
+            <i class="bi bi-clock-history"></i>
+            Historique
+          </button>
+        </div>
+
+        <div *ngIf="activeTab === 'commentaires'" class="tab-panel">
+          <div class="empty-state" *ngIf="!demande.commentaires || !demande.commentaires.length">
+            <i class="bi bi-chat"></i>
+            Aucun commentaire
+          </div>
+          <div *ngIf="demande.commentaires && demande.commentaires.length" class="comments-list">
+            <article class="comment-card" *ngFor="let c of demande.commentaires">
+              <div class="comment-head">
+                <span class="comment-avatar">{{ getCommentAuteur(c).charAt(0) || '?' }}</span>
+                <div class="comment-meta">
+                  <span class="comment-label">Par</span>
+                  <strong class="comment-author">{{ getCommentAuteur(c) }}</strong>
+                  <time class="comment-date" *ngIf="getCommentDate(c)">{{ getCommentDate(c) | date:'dd/MM/yyyy HH:mm' }}</time>
+                </div>
+              </div>
+              <div class="comment-text-block">
+                <span class="comment-text-label">Commentaire :</span>
+                <p class="comment-body">{{ getCommentContenu(c) }}</p>
+              </div>
+            </article>
+          </div>
+          <div class="comment-form">
+            <textarea
+              class="comment-input"
+              [(ngModel)]="newComment"
+              placeholder="Ajouter un commentaire..."
+              rows="3"
+              [disabled]="isAddingComment"></textarea>
+            <div class="comment-file-row">
+              <input
+                #commentFileInput
+                type="file"
+                class="comment-file-input"
+                (change)="onCommentFileSelected($event)"
+                [disabled]="isUploadingCommentFile" />
+              <button
+                type="button"
+                class="btn-comment"
+                (click)="uploadCommentFile(commentFileInput)"
+                [disabled]="!selectedCommentFile || isUploadingCommentFile">
+                <span *ngIf="!isUploadingCommentFile"><i class="bi bi-upload"></i> Ajouter fichier</span>
+                <span *ngIf="isUploadingCommentFile"><i class="bi bi-arrow-repeat spin"></i> Upload...</span>
+              </button>
+            </div>
+            <p class="comment-file-name" *ngIf="selectedCommentFile">
+              Fichier sélectionné : {{ selectedCommentFile.name }}
+            </p>
+            <button
+              type="button"
+              class="btn-comment"
+              (click)="addComment()"
+              [disabled]="!(newComment || '').trim() || isAddingComment">
+              <span *ngIf="!isAddingComment"><i class="bi bi-send"></i> Envoyer</span>
+              <span *ngIf="isAddingComment"><i class="bi bi-arrow-repeat spin"></i> Envoi...</span>
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="activeTab === 'historique'" class="tab-panel">
+          <div class="empty-state" *ngIf="!historique.length">
+            <i class="bi bi-clock"></i>
+            Aucun historique de changement de statut
+          </div>
+          <div *ngIf="historique.length" class="history-list">
+            <div class="history-item" *ngFor="let item of historique">
+              <div class="history-dot"></div>
+              <div class="history-content">
+                <strong>{{ getHistoriqueLabel(item) }}</strong>
+                <span class="history-date" *ngIf="getHistoriqueDate(item)">{{ getHistoriqueDate(item) | date:'dd/MM/yyyy HH:mm' }}</span>
+                <span class="history-by">Par {{ getHistoriqueUser(item) }}</span>
+                <p class="history-desc" *ngIf="getHistoriqueDescription(item)">{{ getHistoriqueDescription(item) }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Sidebar : infos essentielles + actions -->
+    <aside class="detail-sidebar">
+      <!-- Actions en premier -->
+      <div class="sidebar-card actions-card">
+        <h3 class="sidebar-title"><i class="bi bi-lightning-charge"></i> Actions</h3>
+
+        <!-- Un seul bouton "Résolue" quand la demande est validée/done -->
+        <div class="actions-list" *ngIf="canShowResolueButton() && !isDemandeRejetee()">
+          <button type="button" class="action-btn action-success" (click)="openResolueModalMethod()">
+            <i class="bi bi-arrow-repeat"></i>
+            Changer statut final
+          </button>
+          <button
+            type="button"
+            class="action-btn action-secondary"
+            *ngIf="canReturnDemandeBySIAdmin()"
+            (click)="openReturnModal()">
+            <i class="bi bi-arrow-return-left"></i>
+            Retourner à l'expéditeur
+          </button>
+        </div>
+
+        <!-- Resoumission : uniquement pour le demandeur en correction -->
+        <div class="actions-list" *ngIf="canResoumettre()">
+          <button
+            type="button"
+            class="action-btn action-secondary"
+            (click)="resoumettreDemande()"
+            [disabled]="isResoumitting">
+            <i class="bi bi-arrow-repeat"></i>
+            Resoumettre la demande
+          </button>
+        </div>
+
+        <!-- Soumission initiale : uniquement pour le demandeur quand la demande est initiée -->
+        <div class="actions-list" *ngIf="canSoumettreDemandeInitiee()">
+          <button
+            type="button"
+            class="action-btn action-info"
+            (click)="soumettreDemandeInitiee()"
+            [disabled]="isSubmittingInitialDemande">
+            <i class="bi bi-send-check"></i>
+            Soumettre la demande
+          </button>
+        </div>
+
+        <!-- Boutons Accepter / Rejeter / Escalader : masqués si la demande est validée (seul le bouton Résolue s'affiche) -->
+        <div class="actions-list" *ngIf="canShowActions()">
+          <button
+            type="button"
+            class="action-btn action-success"
+            *ngIf="canValidateOrReject() && canSeeValidationActionsForCurrentStatus() && !isRetournerSiStatus()"
+            (click)="markAsResolved()">
+            <i class="bi bi-check-circle"></i>
+            Accepter
+          </button>
+          <button
+            type="button"
+            class="action-btn action-danger"
+            *ngIf="canValidateOrReject() && canSeeValidationActionsForCurrentStatus() && !isRetournerSiStatus()"
+            (click)="openRejectModal()">
+            <i class="bi bi-x-circle"></i>
+            Rejeter
+          </button>
+          <button
+            type="button"
+            class="action-btn action-secondary"
+            *ngIf="canReturnDemandeBySIAdmin()"
+            (click)="openReturnModal()">
+            <i class="bi bi-arrow-return-left"></i>
+            {{ isRetournerSiStatus() ? 'Passer à A_CORRIGER_PAR_DEMANDEUR' : "Retourner à l'expéditeur" }}
+          </button>
+          
+          <button type="button" class="action-btn action-warning" *ngIf="canEscalateToAdmin() && !isEncoursChezAdminStatus() && !isRetournerSiStatus()" (click)="escaladerAdmin()">
+            <i class="bi bi-arrow-up-circle"></i>
+            Escalader Admin
+          </button>
+          <button type="button" class="action-btn action-info" *ngIf="canEscalateToPartenaire() && !isRetournerSiStatus()" (click)="escaladerPartenaire()">
+            <i class="bi bi-people"></i>
+            ENGAGE PARTENAIRE
+          </button>
+        </div>
+        <p
+          class="sidebar-hint"
+          *ngIf="!isDemandeRejetee() && !isDemandeTraitee() && !canShowActions() && !canShowResolueButton() && !canResoumettre() && !canSoumettreDemandeInitiee()"
+          role="status">
+          <i class="bi bi-info-circle"></i>
+          Vous n'avez pas les permissions pour gérer cette demande.
+        </p>
+
+        <!-- Message demande rejetée : aucun bouton -->
+        <p
+          class="sidebar-hint"
+          *ngIf="isDemandeRejetee()"
+          role="status">
+          <i class="bi bi-x-circle"></i>
+          Cette demande a été rejetée.
+        </p>
+
+        <!-- Message demande déjà traitée (hors rejet) -->
+        <p
+          class="sidebar-hint"
+          *ngIf="isDemandeTraitee() && !isDemandeRejetee()"
+          role="status">
+          <i class="bi bi-check-circle"></i>
+          Cette demande a déjà été traitée. Aucune action supplémentaire n'est possible.
+        </p>
+      </div>
+
+      <!-- Infos courtes -->
+      <div class="sidebar-card">
+        <h3 class="sidebar-title"><i class="bi bi-info-circle"></i> En bref</h3>
+        <dl class="info-list">
+          <div class="info-row">
+            <dt>Application</dt>
+            <dd>{{ getApplicationDisplay(demande.application) }}</dd>
+          </div>
+          <div class="info-row" *ngIf="demande.typedemande">
+            <dt>Type de demande</dt>
+            <dd>
+              {{
+                demande.typedemande === 'PARAMETRABLE'
+                  ? 'Paramétrage'
+                  : demande.typedemande === 'EVOLUTION'
+                    ? 'Évolution'
+                    : demande.typedemande
+              }}
+            </dd>
+          </div>
+          <div class="info-row">
+            <dt>Créé par</dt>
+            <dd>{{ getCreatedByName() }}</dd>
+          </div>
+          <div class="info-row">
+            <dt>Date</dt>
+            <dd>{{ demande.datecreate | date:'dd/MM/yyyy' }}</dd>
+          </div>
+          <div class="info-row" *ngIf="demande.departement">
+            <dt>Département</dt>
+            <dd>{{ demande.departement }}</dd>
+          </div>
+          <div class="info-row" *ngIf="demande.assignedTo">
+            <dt>Assigné à</dt>
+            <dd>{{ demande.assignedTo }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="sidebar-card">
+        <button type="button" class="action-btn action-outline" (click)="goToEdit()" *ngIf="canEditDemande()">
+          <i class="bi bi-pencil"></i>
+          Modifier la demande
+        </button>
+      </div>
+
+      <div class="sidebar-card">
+        <button
+          type="button"
+          class="action-btn action-info"
+          (click)="exportDemandeToExcel()">
+          <i class="bi bi-file-earmark-spreadsheet"></i>
+          Exporter en Excel
+        </button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- Demande introuvable -->
+<div class="detail-empty-page" *ngIf="!isLoading && !demande">
+  <i class="bi bi-exclamation-triangle"></i>
+  <h2>Demande introuvable</h2>
+  <p>Cette demande n'existe pas ou a été supprimée.</p>
+  <a routerLink="/demandes/mes-demandes" class="btn-back-link">
+    <i class="bi bi-arrow-left"></i>
+    Retour aux demandes
+  </a>
+</div>
+
+<!-- Modal validation -->
+<div class="modal-overlay" *ngIf="openValidationModal" (click)="closeValidationModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <button type="button" class="modal-close" (click)="closeValidationModal()" aria-label="Fermer">
+      <i class="bi bi-x"></i>
+    </button>
+    <h3 class="modal-title">
+      <i class="bi" [ngClass]="{
+        'bi-check-circle': validationAction === 'valider',
+        'bi-x-circle': validationAction === 'rejeter',
+        'bi-arrow-return-left': validationAction === 'retourner',
+        'bi-lock': validationAction === 'cloturer',
+        'bi-arrow-up-circle': validationAction === 'escalade_admin',
+        'bi-people': validationAction === 'escalade_partenaire'
+      }"></i>
+      {{ validationAction === 'valider' ? 'Accepter la demande'
+        : validationAction === 'rejeter' ? 'Rejeter la demande'
+        : validationAction === 'retourner' ? 'Retourner la demande à l’expéditeur'
+        : validationAction === 'cloturer' ? 'Clôturer la demande'
+        : validationAction === 'escalade_admin' ? 'Escalade vers Admin'
+        : 'ENGAGE ADMIN' }}
+    </h3>
+    <textarea
+      [(ngModel)]="validationCommentaire"
+      placeholder="Commentaire (obligatoire)..."
+      rows="4"
+      class="modal-textarea"
+      [class.error]="!validationCommentaire?.trim() && isValidating"></textarea>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-cancel" (click)="closeValidationModal()" [disabled]="isValidating">
+        <i class="bi bi-x"></i>
+        Annuler
+      </button>
+      <button type="button" class="btn btn-confirm"
+        [ngClass]="{
+          'btn-success': validationAction === 'valider',
+          'btn-danger': validationAction === 'rejeter',
+          'btn-secondary': validationAction === 'retourner' || validationAction === 'cloturer',
+          'btn-warning': validationAction === 'escalade_admin',
+          'btn-info': validationAction === 'escalade_partenaire'
+        }"
+        (click)="submitValidation()"
+        [disabled]="!validationCommentaire?.trim() || isValidating">
+        <span *ngIf="!isValidating"><i class="bi bi-check"></i> Confirmer</span>
+        <span *ngIf="isValidating"><i class="bi bi-arrow-repeat spin"></i> En cours...</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Marquer résolue -->
+<div class="modal-overlay" *ngIf="openResolueModal" (click)="closeResolueModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <button type="button" class="modal-close" (click)="closeResolueModal()" aria-label="Fermer">
+      <i class="bi bi-x"></i>
+    </button>
+    <h3 class="modal-title">
+      <i class="bi bi-arrow-repeat"></i>
+      Changer le statut final
+    </h3>
+    <label class="modal-label" for="resolue-code">Nouveau statut *</label>
+    <select id="resolue-code" class="modal-select" [(ngModel)]="resolueCode">
+      <option value="">Sélectionner un statut</option>
+      <option *ngFor="let code of getAvailableResolueCodes()" [value]="code">{{ code }}</option>
+    </select>
+    <p class="modal-help-text" *ngIf="!getAvailableResolueCodes().length">
+      Aucun changement de statut final n'est disponible.
+    </p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-cancel" (click)="closeResolueModal()" [disabled]="isSubmittingResolue">
+        <i class="bi bi-x"></i>
+        Annuler
+      </button>
+      <button
+        type="button"
+        class="btn btn-confirm btn-success"
+        (click)="submitResolue()"
+        [disabled]="isSubmittingResolue || !resolueCode.trim()">
+        <span *ngIf="!isSubmittingResolue"><i class="bi bi-check"></i> Appliquer</span>
+        <span *ngIf="isSubmittingResolue"><i class="bi bi-arrow-repeat spin"></i> En cours...</span>
+      </button>
+    </div>
+  </div>
+</div>

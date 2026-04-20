@@ -1,0 +1,85 @@
+<div class="statistiques-page">
+  <div class="stats-header">
+    <div>
+      <h1 class="stats-title">Statistiques</h1>
+      <p class="stats-subtitle">Suivi global des demandes d'évolution</p>
+    </div>
+    <button type="button" class="btn-refresh" (click)="loadStatistiques()">
+      <i class="bi bi-arrow-clockwise"></i>
+      Actualiser
+    </button>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-state">
+    <i class="bi bi-exclamation-triangle"></i>
+    <p>{{ errorMessage }}</p>
+    <button class="btn-retry" (click)="loadStatistiques()">Réessayer</button>
+  </div>
+
+  <div *ngIf="isLoading && !errorMessage" class="stats-loading" aria-live="polite">
+    <div class="stats-loading-spinner"></div>
+    <p class="stats-loading-text">Chargement des statistiques...</p>
+  </div>
+
+  <ng-container *ngIf="stats && !isLoading">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <span>Total demandes</span>
+        <strong>{{ stats.totalDemandes }}</strong>
+      </div>
+      <div class="kpi-card">
+        <span>Acceptées</span>
+        <strong>{{ getAcceptedCount() }}</strong>
+      </div>
+      <div class="kpi-card">
+        <span>En cours admin</span>
+        <strong>{{ getEnCoursAdminCount() }}</strong>
+      </div>
+      <div class="kpi-card">
+        <span>Rejetées</span>
+        <strong>{{ stats.demandesRejetees }}</strong>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Répartition par priorité</h3>
+        <canvas #prioriteCanvas class="chart-canvas"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Répartition par type</h3>
+        <canvas #typeCanvas class="chart-canvas"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Statuts finaux</h3>
+        <canvas #finalCanvas class="chart-canvas"></canvas>
+      </div>
+      <div class="chart-card chart-card-large">
+        <h3>Créations par mois</h3>
+        <canvas #moisCanvas class="chart-canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="detail-table-card" *ngIf="statusLabels.length > 0">
+      <h3>Récapitulatif des statuts</h3>
+      <div class="detail-table-wrap">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>Statut</th>
+              <th>Nombre</th>
+              <th>%</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of getStatusTableRows()">
+              <td>{{ row.label }}</td>
+              <td>{{ row.count }}</td>
+              <td>{{ row.pct }}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </ng-container>
+</div>

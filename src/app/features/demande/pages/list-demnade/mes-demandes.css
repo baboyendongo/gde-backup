@@ -1,0 +1,700 @@
+/* ============================================
+   MES DEMANDES — DESIGN
+   ============================================ */
+
+.mes-demandes-page {
+  min-height: 100vh;
+  background: #f1f5f9;
+  padding: 0 0 48px 0;
+}
+
+/* ----- En-tête ----- */
+.list-header {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+  color: #fff;
+  padding: 28px 32px;
+  margin-bottom: 0;
+}
+
+.list-header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.list-header-text {
+  flex: 1;
+}
+
+.list-title {
+  margin: 0 0 6px 0;
+  font-size: 26px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: -0.5px;
+}
+
+.list-title i {
+  opacity: 0.95;
+}
+
+.list-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.list-header .btn-add {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+.list-header .btn-add:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #fff;
+}
+
+/* ----- Filtres ----- */
+.filters-bar {
+  max-width: 1200px;
+  margin: -20px auto 0;
+  padding: 0 32px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.search-wrap {
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-wrap i {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fff;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-input::placeholder {
+  color: #94a3b8;
+}
+
+.filter-select {
+  padding: 12px 36px 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #334155;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 12px center;
+  cursor: pointer;
+  appearance: none;
+  min-width: 160px;
+}
+
+.filter-select:hover,
+.filter-select:focus {
+  border-color: #cbd5e1;
+  outline: none;
+}
+
+/* ----- Bouton principal ----- */
+.btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.btn-add:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+.btn-add i {
+  font-size: 16px;
+}
+
+/* ----- États (chargement / erreur / vide) ----- */
+.state-wrap {
+  max-width: 1200px;
+  margin: 32px auto 0;
+  padding: 0 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 320px;
+}
+
+.loading-wrap,
+.error-wrap {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 48px 32px;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.state-wrap p {
+  margin: 0;
+  color: #64748b;
+  font-size: 15px;
+}
+
+.error-wrap {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.error-wrap i {
+  font-size: 48px;
+  color: #dc2626;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.error-wrap p {
+  color: #991b1b;
+}
+
+.empty-wrap {
+  background: #fff;
+  border-radius: 16px;
+  border: 2px dashed #e2e8f0;
+  padding: 64px 32px;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.empty-icon i {
+  font-size: 36px;
+  color: #94a3b8;
+}
+
+.empty-wrap h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.empty-wrap p {
+  margin: 0 0 24px 0;
+  color: #64748b;
+  font-size: 15px;
+}
+
+/* ----- Liste des cartes ----- */
+.demandes-list {
+  max-width: 1200px;
+  margin: 32px auto 0;
+  padding: 0 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ----- Pagination ----- */
+.list-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pagination-btns {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #475569;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-page {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.demande-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.demande-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.card-accent {
+  width: 4px;
+  flex-shrink: 0;
+  background: #64748b;
+}
+
+/* Priorité : bandeau gauche — Urgent=rouge, Élevé=orange, Normal=bleu, Non urgent=gris */
+.card-accent.badge-priority-urgent {
+  background: #dc2626;
+}
+
+.card-accent.badge-priority-eleve,
+.card-accent.badge-priority-élevé,
+.card-accent.badge-priority-elevee {
+  background: #ea580c;
+}
+
+.card-accent.badge-priority-normal {
+  background: #2563eb;
+}
+
+.card-accent.badge-priority-moyen {
+  background: #2563eb;
+}
+
+.card-accent.badge-priority-non_urgent,
+.card-accent.badge-priority-nonurgent,
+.card-accent.badge-priority-non-urgent {
+  background: #64748b;
+}
+
+.card-body {
+  flex: 1;
+  padding: 20px 24px;
+  min-width: 0;
+}
+
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.card-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-ref {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* Application : violet/indigo pour bien distinguer du statut et de la priorité */
+.badge-app {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+/* Statut : Rejeté=rouge, DONE/Validé=vert, En cours=bleu foncé, Créé=bleu */
+.badge-status-rejete,
+.badge-status-rejeté,
+.badge-status-rejected,
+.badge-status-rejeter {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-status-resolu,
+.badge-status-résolu {
+  background: #14532d; /* vert foncé */
+  color: #ecfdf5;
+}
+
+.badge-status-done,
+.badge-status-termine,
+.badge-status-terminé,
+.badge-status-terminee,
+.badge-status-accepte,
+.badge-status-accepté,
+.badge-status-acceptee,
+.badge-status-acceptée,
+.badge-status-validee,
+.badge-status-validé {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge-status-en_cours,
+.badge-status-encours,
+.badge-status-en-cours,
+.badge-status-en_cours_de_traitement_si {
+  background: #1e3a8a;
+  color: #fff;
+}
+
+.badge-status-cree,
+.badge-status-creé,
+.badge-status-creee,
+.badge-status-created {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge-status-initie,
+.badge-status-initiee,
+.badge-status-initiated {
+  background: #fae8ff;
+  color: #a21caf;
+}
+
+/* Statuts finaux */
+.badge-status-livre {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-status-test {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-status-preprod {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.badge-status-en_attente,
+.badge-status-enattente,
+.badge-status-en-attente {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.badge-status-a_corriger_par_demandeur {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-status-soumis,
+.badge-status-soumise,
+.badge-status-demande_soumis,
+.badge-status-demande_soumise {
+  background: #cffafe;
+  color: #0f766e;
+}
+
+.badge-status-retourner_si {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+/* Statut spécifique ADMIN_ENCOURS : bleu foncé homogène */
+.badge-status-admin_encours {
+  background: #1e293b;
+  color: #e5f2ff;
+}
+
+.badge-status-default {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* Priorité : Urgent=rouge, Élevé=orange, Normal=bleu, Non urgent=gris */
+.badge-priority-non_urgent,
+.badge-priority-nonurgent,
+.badge-priority-non-urgent {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.badge-priority-normal {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge-priority-moyen {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge-priority-eleve,
+.badge-priority-élevé,
+.badge-priority-elevee {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.badge-priority-urgent {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-priority-default {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.card-desc {
+  margin: 0 0 14px 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  margin-bottom: 16px;
+}
+
+.card-meta .meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.card-meta .meta i {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.action-btn.primary {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.action-btn.primary:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.action-btn i {
+  font-size: 14px;
+}
+
+/* ----- Responsive ----- */
+@media (max-width: 768px) {
+  .mes-demandes-page {
+    padding-bottom: 24px;
+  }
+
+  .list-header {
+    padding: 20px 20px;
+  }
+
+  .list-title {
+    font-size: 22px;
+  }
+
+  .filters-bar {
+    margin-top: -16px;
+    padding: 0 20px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-wrap {
+    max-width: none;
+  }
+
+  .filter-select {
+    min-width: 0;
+  }
+
+  .demandes-list,
+  .state-wrap {
+    padding: 0 20px;
+    margin-top: 24px;
+  }
+
+  .demande-card {
+    flex-direction: column;
+  }
+
+  .card-accent {
+    width: 100%;
+    height: 4px;
+  }
+
+  .card-body {
+    padding: 16px 20px;
+  }
+
+  .card-head {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card-title {
+    font-size: 16px;
+  }
+
+  .card-actions {
+    flex-wrap: wrap;
+  }
+}

@@ -1,0 +1,27 @@
+<!-- <div class="role-assignment-page">
+    <h1>Assign Roles to Users</h1>
+    <div class="role-assignment-form">
+        <label for="userSelect">Select User:</label>
+        <select id="userSelect" [(ngModel)]="selectedUser" (change)="onUserChange()">
+            <option *ngFor="let user of users" [value]="user.id">{{ user.name }}</option>
+        </select>
+
+        <label for="roleSelect">Select Role:</label>
+        <select id="roleSelect" [(ngModel)]="selectedRole">
+            <option *ngFor="let role of roles" [value]="role.id">{{ role.name }}</option>
+        </select>
+
+        <button (click)="assignRole()">Assign Role</button>
+    </div>
+
+    <div *ngIf="message" class="message">{{ message }}</div>
+
+    <div class="roles-list">
+        <h2>Available Roles</h2>
+        <ul>
+            <li *ngFor="let role of roles">
+                {{ role.name }} - {{ role.description }}
+            </li>
+        </ul>
+    </div>
+</div> -->

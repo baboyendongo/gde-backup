@@ -1,0 +1,117 @@
+<div class="mes-demandes-page">
+  <!-- En-tête -->
+  <header class="list-header">
+    <div class="list-header-content">
+      <div class="list-header-text">
+        <h1 class="list-title">
+          <i class="bi bi-file-earmark-text"></i>
+          Mes demandes
+        </h1>
+        <p class="list-subtitle">{{ filteredDemandes.length }} demande(s)</p>
+      </div>
+      <button type="button" class="btn-add" (click)="goToAddDemande()">
+        <i class="bi bi-plus-lg"></i>
+        Nouvelle demande
+      </button>
+    </div>
+  </header>
+
+  <!-- Filtres -->
+  <div class="filters-bar">
+    <div class="search-wrap">
+      <i class="bi bi-search"></i>
+      <input
+        type="text"
+        placeholder="Rechercher par objet ou description..."
+        class="search-input"
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="applyFilters()">
+    </div>
+    <select class="filter-select" [(ngModel)]="selectedType" (ngModelChange)="applyFilters()">
+      <option value="">Toutes les applications</option>
+      <option *ngFor="let app of applicationFilterOptions" [value]="app.value">{{ app.label }}</option>
+    </select>
+    <select class="filter-select" [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
+      <option value="">Tous les statuts</option>
+      <option *ngFor="let s of statusFilterOptions" [value]="s.value">{{ s.label }}</option>
+    </select>
+  </div>
+
+  <!-- Chargement -->
+  <div *ngIf="loading" class="state-wrap loading-wrap">
+    <div class="loading-spinner"></div>
+    <p>Chargement des demandes...</p>
+  </div>
+
+  <!-- Erreur -->
+  <div *ngIf="errorMessage && !loading" class="state-wrap error-wrap">
+    <i class="bi bi-exclamation-triangle"></i>
+    <p>{{ errorMessage }}</p>
+  </div>
+
+  <!-- Liste des demandes -->
+  <div *ngIf="!loading && filteredDemandes.length > 0" class="demandes-list">
+    <article
+      *ngFor="let d of paginatedDemandes"
+      class="demande-card"
+      (click)="goToDetail(d.id)">
+      <div class="card-accent" [ngClass]="getPriorityClass(d.niveaupriorite)"></div>
+      <div class="card-body">
+        <div class="card-head">
+          <div class="card-title-wrap">
+            <span class="card-ref">EVO-{{ d.id }}</span>
+            <h2 class="card-title">{{ d.objet }}</h2>
+          </div>
+          <div class="card-badges">
+            <span class="badge badge-app">{{ getApplicationDisplay(d.application) }}</span>
+            <span class="badge" [ngClass]="getStatusClassFromDemande(d)">{{ getStatusLabelFromDemande(d) }}</span>
+            <span class="badge" [ngClass]="getPriorityClass(d.niveaupriorite)">{{ getPriorityLabel(d.niveaupriorite) }}</span>
+          </div>
+        </div>
+        <p class="card-desc">{{ (d.description || 'Aucune description') | slice:0:160 }}{{ (d.description || '').length > 160 ? '…' : '' }}</p>
+        <div class="card-meta">
+          <span class="meta"><i class="bi bi-person"></i> {{ getCreatedByName(d) }}</span>
+          <span class="meta"><i class="bi bi-calendar3"></i> {{ d.datecreate | date:'dd MMM yyyy' }}</span>
+          <span class="meta" *ngIf="d.assignedTo"><i class="bi bi-person-check"></i> {{ d.assignedTo }}</span>
+        </div>
+        <div class="card-actions" (click)="$event.stopPropagation()">
+          <button type="button" class="action-btn" title="Modifier" (click)="goToEdit(d.id)">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button type="button" class="action-btn primary" title="Voir détails" (click)="goToDetail(d.id)">
+            <i class="bi bi-arrow-right"></i> Détails
+          </button>
+        </div>
+      </div>
+    </article>
+
+    <!-- Pagination -->
+    <div class="list-pagination" *ngIf="filteredDemandes.length > itemsPerPage">
+      <span class="pagination-info">
+        {{ (currentPage - 1) * itemsPerPage + 1 }}-{{ Math.min(currentPage * itemsPerPage, filteredDemandes.length) }} sur {{ filteredDemandes.length }}
+      </span>
+      <div class="pagination-btns">
+        <button type="button" class="pagination-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)" aria-label="Page précédente">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <span class="pagination-page">Page {{ currentPage }} / {{ totalPages }}</span>
+        <button type="button" class="pagination-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)" aria-label="Page suivante">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- État vide -->
+  <div *ngIf="!loading && filteredDemandes.length === 0 && !errorMessage" class="state-wrap empty-wrap">
+    <div class="empty-icon"><i class="bi bi-inbox"></i></div>
+    <h3 *ngIf="demandes.length === 0">Aucune demande</h3>
+    <h3 *ngIf="demandes.length > 0">Aucun résultat</h3>
+    <p *ngIf="demandes.length === 0">Créez votre première demande d'évolution.</p>
+    <p *ngIf="demandes.length > 0">Aucune demande ne correspond aux filtres.</p>
+    <button *ngIf="demandes.length === 0" type="button" class="btn-add" (click)="goToAddDemande()">
+      <i class="bi bi-plus-circle"></i>
+      Créer une demande
+    </button>
+  </div>
+</div>

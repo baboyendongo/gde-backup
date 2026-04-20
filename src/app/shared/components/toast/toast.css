@@ -1,0 +1,159 @@
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 400px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.toast-notification {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid;
+  pointer-events: auto;
+  animation: slideInRight 0.15s ease-out;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+.toast-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+
+.toast-content i {
+  font-size: 1.2rem;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.toast-message {
+  flex: 1;
+  word-wrap: break-word;
+  font-weight: 500;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.toast-close:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.toast-close i {
+  font-size: 1rem;
+}
+
+/* Types de notifications */
+.toast-error {
+  background-color: #fef2f2;
+  border-left-color: #dc2626;
+  color: #991b1b;
+  animation: slideInRightFast 0.1s ease-out;
+}
+
+.toast-error .toast-content i {
+  color: #dc2626;
+}
+
+.toast-warning {
+  background-color: #fffbeb;
+  border-left-color: #f59e0b;
+  color: #92400e;
+}
+
+.toast-warning .toast-content i {
+  color: #f59e0b;
+}
+
+.toast-info {
+  background-color: #eff6ff;
+  border-left-color: #2563eb;
+  color: #1e40af;
+}
+
+.toast-info .toast-content i {
+  color: #2563eb;
+}
+
+.toast-success {
+  background-color: #f0fdf4;
+  border-left-color: #22c55e;
+  color: #166534;
+}
+
+.toast-success .toast-content i {
+  color: #22c55e;
+}
+
+/* Animations - optimisées pour un affichage rapide */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Pour les erreurs critiques, affichage encore plus rapide */
+.toast-error {
+  animation: slideInRightFast 0.1s ease-out;
+}
+
+@keyframes slideInRightFast {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .toast-container {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+
+  .toast-notification {
+    padding: 14px 16px;
+    font-size: 0.8125rem;
+  }
+}

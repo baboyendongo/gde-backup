@@ -1,0 +1,454 @@
+<div class="dashboard-wrapper">
+  <div class="dashboard-container">
+
+    <!-- Enhanced Header -->
+    <div class="dashboard-header">
+      <div class="header-left">
+        <h1 class="dashboard-title">Bienvenue, {{ userName }}</h1>
+        <p class="dashboard-subtitle">Tableau de bord de gestion des demandes d'évolution</p>
+        <div class="header-kpi-strip">
+          <div class="header-kpi-item">
+            <span class="kpi-caption">Total</span>
+            <strong>{{ stats.total }}</strong>
+          </div>
+          <div class="header-kpi-item">
+            <span class="kpi-caption">Taux de succès</span>
+            <strong>{{ getCompletionPercentage() }}%</strong>
+          </div>
+          <div class="header-kpi-item">
+            <span class="kpi-caption">Demandes actives</span>
+            <strong>{{ stats.enCours }}</strong>
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="date-box">
+          <i class="bi bi-calendar3"></i>
+          <span>{{ currentDate | date: 'dd MMMM yyyy' }}</span>
+        </div>
+        <button
+          type="button"
+          class="refresh-btn"
+          (click)="loadDashboardData()">
+          <i class="bi bi-arrow-repeat"></i>
+          <span>Actualiser</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="loadError" class="error-state-container">
+      <div class="error-state">
+        <i class="bi bi-exclamation-triangle"></i>
+        <h3>Erreur de chargement</h3>
+        <p>{{ loadError }}</p>
+        <button type="button" class="btn-primary" (click)="loadDashboardData()">
+          <i class="bi bi-arrow-clockwise"></i> Réessayer
+        </button>
+      </div>
+    </div>
+
+
+    <!-- État de chargement -->
+    <div *ngIf="isLoading && !loadError" class="dashboard-loading" aria-live="polite">
+      <div class="dashboard-loading-spinner"></div>
+      <p class="dashboard-loading-text">Chargement du tableau de bord...</p>
+    </div>
+
+    <!-- Main Content -->
+    <ng-container *ngIf="!loadError && !isLoading">
+      
+      <!-- Stats Grid - Enhanced with Progress -->
+      <div class="stats-section">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue">
+              <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-value">{{ stats.total }}</h3>
+              <p class="stat-label">Total des demandes</p>
+              <div class="stat-progress">
+                <div class="progress-text">Répartition</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- <div class="stat-card">
+            <div class="stat-icon yellow">
+              <i class="bi bi-clock-history"></i>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-value">{{ stats.enCours }}</h3>
+              <p class="stat-label">En cours</p>
+              <div class="stat-sub">
+                <span class="percentage">{{ stats.total > 0 ? ((stats.enCours / stats.total) * 100).toFixed(0) : 0 }}%</span>
+              </div>
+            </div>
+          </div> -->
+
+          <!-- <div class="stat-card">
+            <div class="stat-icon green">
+              <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-value">{{ stats.terminees }}</h3>
+              <p class="stat-label">ACCEPTER</p>
+              <div class="stat-sub">
+                <span class="percentage">{{ stats.total > 0 ? ((stats.terminees / stats.total) * 100).toFixed(0) : 0 }}%</span>
+              </div>
+            </div>
+          </div> -->
+
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-danger">
+              <i class="bi bi-x-circle"></i>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-value">{{ stats.rejetees }}</h3>
+              <p class="stat-label">Demandes rejetées</p>
+              <div class="stat-sub">
+                <span class="percentage">{{ stats.total > 0 ? ((stats.rejetees / stats.total) * 100).toFixed(0) : 0 }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon blue">
+              <i class="bi bi-plus-circle"></i>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-value">{{ statusKpi.created }}</h3>
+              <p class="stat-label">Demandes créées</p>
+              <div class="stat-sub">
+                <span class="percentage">{{ stats.total > 0 ? ((statusKpi.created / stats.total) * 100).toFixed(0) : 0 }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- <div class="stat-card">
+            <div class="stat-icon yellow">
+              <i class="bi bi-person-workspace"></i>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-value">{{ statusKpi.enCoursSi }}</h3>
+              <p class="stat-label">En cours SI</p>
+              <div class="stat-sub">
+                <span class="percentage">{{ stats.total > 0 ? ((statusKpi.enCoursSi / stats.total) * 100).toFixed(0) : 0 }}%</span>
+              </div>
+            </div>
+          </div> -->
+
+          <div class="stat-card">
+            <div class="stat-icon orange">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-value">{{ statusKpi.enCoursAdmin }}</h3>
+              <p class="stat-label">En cours admin</p>
+              <div class="stat-sub">
+                <span class="percentage">{{ stats.total > 0 ? ((statusKpi.enCoursAdmin / stats.total) * 100).toFixed(0) : 0 }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- <div class="stat-card">
+            <div class="stat-icon purple">
+              <i class="bi bi-people"></i>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-value">{{ statusKpi.enCoursPartenaire }}</h3>
+              <p class="stat-label">En cours partenaire</p>
+              <div class="stat-sub">
+                <span class="percentage">{{ stats.total > 0 ? ((statusKpi.enCoursPartenaire / stats.total) * 100).toFixed(0) : 0 }}%</span>
+              </div>
+            </div>
+          </div> -->
+
+          <div class="stat-card">
+            <div class="stat-icon green">
+              <i class="bi bi-check2-square"></i>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-value">{{ statusKpi.accepte }}</h3>
+              <p class="stat-label">Demandes acceptées</p>
+              <div class="stat-sub">
+                <span class="percentage">{{ stats.total > 0 ? ((statusKpi.accepte / stats.total) * 100).toFixed(0) : 0 }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon orange">
+              <i class="bi bi-pencil-square"></i>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-value">{{ statusKpi.aCorrigerParDemandeur }}</h3>
+              <p class="stat-label">À corriger</p>
+              <div class="stat-sub">
+                <span class="percentage">{{ stats.total > 0 ? ((statusKpi.aCorrigerParDemandeur / stats.total) * 100).toFixed(0) : 0 }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Completion Rate Card -->
+        <div class="completion-card">
+          <div class="completion-header">
+            <h3>Taux de complétion</h3>
+            <span class="completion-badge">{{ getCompletionPercentage() }}%</span>
+          </div>
+          <div class="completion-bar">
+            <div class="completion-fill" [style.width.%]="getCompletionPercentage()"></div>
+          </div>
+          <p class="completion-text">{{ statusKpi.accepte }} demandes acceptées sur {{ stats.total }}</p>
+        </div>
+      </div>
+
+      <!-- KPI par statut -->
+      <!-- <div class="section">
+        <h2 class="section-title">
+          <i class="bi bi-bar-chart-steps"></i>
+          KPI par statut de demande
+        </h2>
+        <div class="overview-grid">
+          <div class="overview-card">
+            <h4>Créé</h4>
+            <p class="overview-number">{{ statusKpi.created }}</p>
+            <span class="overview-detail">CREATED</span>
+          </div>
+          <div class="overview-card">
+            <h4>En cours SI</h4>
+            <p class="overview-number">{{ statusKpi.enCoursSi }}</p>
+            <span class="overview-detail">ENCOURS_CHEZ_SI</span>
+          </div>
+          <div class="overview-card">
+            <h4>En cours admin</h4>
+            <p class="overview-number">{{ statusKpi.enCoursAdmin }}</p>
+            <span class="overview-detail">ENCOURS_CHEZ_ADMIN</span>
+          </div>
+          <div class="overview-card">
+            <h4>En cours partenaire</h4>
+            <p class="overview-number">{{ statusKpi.enCoursPartenaire }}</p>
+            <span class="overview-detail">ENCOURS_CHEZ_PARTENAIRE</span>
+          </div>
+          <div class="overview-card">
+            <h4>Acceptée</h4>
+            <p class="overview-number">{{ statusKpi.accepte }}</p>
+            <span class="overview-detail">ACCEPTE</span>
+          </div>
+          <div class="overview-card">
+            <h4>Rejetée</h4>
+            <p class="overview-number">{{ statusKpi.rejected }}</p>
+            <span class="overview-detail">REJECTED</span>
+          </div>
+          <div class="overview-card">
+            <h4>À corriger</h4>
+            <p class="overview-number">{{ statusKpi.aCorrigerParDemandeur }}</p>
+            <span class="overview-detail">A_CORRIGER_PAR_DEMANDEUR</span>
+          </div>
+        </div>
+      </div> -->
+
+      <!-- KPI par statut final -->
+      <div class="section">
+        <h2 class="section-title">
+          <i class="bi bi-kanban"></i>
+          KPI par statut final
+        </h2>
+        <div class="status-final-list">
+          <div class="status-final-item" *ngFor="let item of finalStatusKpiList">
+            <div class="status-final-head">
+              <h4>{{ item.label }}</h4>
+              <span>{{ item.count }} ({{ stats.total > 0 ? ((item.count / stats.total) * 100).toFixed(0) : 0 }}%)</span>
+            </div>
+            <div class="status-final-track">
+              <div class="status-final-fill" [style.width.%]="stats.total > 0 ? ((item.count / stats.total) * 100) : 0"></div>
+            </div>
+            <small>{{ item.code }}</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Two Column Layout -->
+      <div class="dashboard-grid">
+        
+        <!-- Left Column -->
+        <div class="left-column">
+          <!-- Recent Requests Section -->
+          <div class="section">
+            <div class="section-header">
+              <div class="section-title-group">
+                <h2 class="section-title">
+                  <i class="bi bi-lightning-charge"></i>
+                  Demandes récentes
+                </h2>
+                <p class="section-subtitle">Vos 5 dernières demandes</p>
+              </div>
+              <a routerLink="/demandes/mes-demandes" class="see-all-link">
+                Voir tout <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+
+            <div *ngIf="recentDemandes.length > 0" class="recent-list">
+              <div *ngFor="let demande of recentDemandes; trackBy: trackByDemandeId; let i = index" class="recent-item" [attr.data-index]="i">
+                <div class="item-left">
+                  <h4 class="item-title">{{ demande.objet }}</h4>
+                  <p class="item-desc">{{ getDescriptionPreview(demande) }}</p>
+                  <div class="item-meta">
+                    <span class="meta-date">
+                      <i class="bi bi-calendar2-event"></i>
+                      {{ demande.datecreate | date: 'dd MMM' }}
+                    </span>
+                    <span class="meta-app">
+                      <i class="bi bi-app"></i>
+                      {{ demande.application }}
+                    </span>
+                  </div>
+                </div>
+                <div class="item-right">
+                  <span class="badge" [ngClass]="getStatusClass(demande.statut)">
+                    {{ getStatusLabel(demande.statut) }}
+                  </span>
+                  <a [routerLink]="['/demandes', demande.id]" class="view-link" title="Voir détails">
+                    <i class="bi bi-arrow-right"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="recentDemandes.length === 0" class="empty-state">
+              <div class="empty-icon">
+                <i class="bi bi-inbox"></i>
+              </div>
+              <h3>Aucune demande</h3>
+              <p>Vous n'avez pas encore de demandes d'évolution</p>
+              <a routerLink="/demandes/nouvelle" class="btn-primary">
+                <i class="bi bi-plus-circle"></i>
+                Créer votre première demande
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="right-column">
+          <!-- Top Applications -->
+          <div class="section">
+            <div class="section-title-group">
+              <h3 class="section-title">
+                <i class="bi bi-diagram-2"></i>
+                Applications actives
+              </h3>
+              <p class="section-subtitle">Top 3 des applications</p>
+            </div>
+            <div class="app-list">
+              <div *ngFor="let app of getTopApplications(); trackBy: trackByApp" class="app-item">
+                <div class="app-circle">{{ app.app.substring(0, 2).toUpperCase() }}</div>
+                <div class="app-info">
+                  <h4>{{ app.app }}</h4>
+                  <p>{{ app.count }} demande{{ app.count > 1 ? 's' : '' }}</p>
+                </div>
+                <div class="app-count">{{ app.count }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- <div class="section">
+            <div class="section-title-group">
+              <h3 class="section-title">
+                <i class="bi bi-bar-chart-steps"></i>
+                Statuts dominants
+              </h3>
+              <p class="section-subtitle">Top 5 des statuts les plus fréquents</p>
+            </div>
+            <div class="status-list">
+              <div class="status-item" *ngFor="let kpi of allStatusKpi | slice:0:5">
+                <div class="status-item-head">
+                  <span class="status-name">{{ kpi.label }}</span>
+                  <span class="status-count">{{ kpi.count }}</span>
+                </div>
+                <div class="status-track">
+                  <div class="status-fill" [style.width.%]="stats.total > 0 ? ((kpi.count / stats.total) * 100) : 0"></div>
+                </div>
+              </div>
+            </div>
+            <p class="section-subtitle" *ngIf="allStatusKpi.length === 0">Aucun statut disponible pour le moment.</p>
+          </div> -->
+
+          <!-- Quick Actions -->
+          <div class="section">
+            <div class="section-title-group">
+              <h3 class="section-title">
+                <i class="bi bi-lightning-fill"></i>
+                Actions rapides
+              </h3>
+            </div>
+            <div class="actions-vertical">
+              <a routerLink="/demandes/nouvelle" class="action-button primary">
+                <div class="action-icon">
+                  <i class="bi bi-plus-lg"></i>
+                </div>
+                <div class="action-label">Nouvelle demande</div>
+              </a>
+              <a routerLink="/demandes/mes-demandes" class="action-button secondary">
+                <div class="action-icon">
+                  <i class="bi bi-list-check"></i>
+                </div>
+                <div class="action-label">Mes demandes</div>
+              </a>
+            </div>
+
+          </div>
+
+          <!-- Info Card -->
+          <div class="info-card">
+            <div class="info-header">
+              <i class="bi bi-info-circle"></i>
+              <h4>Besoin d'aide ?</h4>
+            </div>
+            <p>Consultez notre documentation pour apprendre à créer et gérer vos demandes d'évolution efficacement.</p>
+            <a href="#" class="info-link">En savoir plus <i class="bi bi-arrow-right"></i></a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Section - Quick Stats -->
+      <div class="section">
+        <h2 class="section-title">
+          <i class="bi bi-graph-up"></i>
+          Aperçu global
+        </h2>
+        <div class="overview-grid">
+          <div class="overview-card">
+            <div class="overview-icon blue">
+              <i class="bi bi-hourglass-bottom"></i>
+            </div>
+            <h4>Demandes actives</h4>
+            <p class="overview-number">{{ stats.enCours }}</p>
+            <span class="overview-detail">à traiter</span>
+          </div>
+          <div class="overview-card">
+            <div class="overview-icon green">
+              <i class="bi bi-check2-circle"></i>
+            </div>
+            <h4>Succès</h4>
+            <p class="overview-number">{{ getCompletionPercentage() }}%</p>
+            <span class="overview-detail">de complétion</span>
+          </div>
+          <div class="overview-card">
+            <div class="overview-icon purple">
+              <i class="bi bi-speedometer2"></i>
+            </div>
+            <h4>Moyenne</h4>
+            <p class="overview-number">{{ stats.total > 0 ? (stats.total / 12).toFixed(1) : 0 }}</p>
+            <span class="overview-detail">par mois</span>
+          </div>
+        </div>
+      </div>
+
+    </ng-container>
+
+  </div>
+</div>

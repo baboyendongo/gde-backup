@@ -1,0 +1,397 @@
+/* 1. Conteneur principal */
+.page-content {
+  background-color: #f1f5f9;
+  min-height: 100%;
+  padding: 24px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.back-link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.back-link:hover {
+  color: #1e40af;
+}
+.back-link i {
+  font-size: 1.1rem;
+}
+
+/* 2. Carte */
+.card-container {
+  background-color: #fff;
+  width: 100%;
+  max-width: 720px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+}
+
+/* 3. Header de la carte */
+.card-header-custom {
+  padding: 24px 28px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.add-title,
+.header-text h3 {
+  margin: 0 0 6px 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.add-subtitle,
+.header-text p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.btn-close-custom {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+/* 4. Corps de la carte */
+.card-body-custom {
+  padding: 28px;
+}
+
+.form-section {
+  margin-bottom: 28px;
+}
+.form-section:last-of-type {
+  margin-bottom: 24px;
+}
+
+.form-section-title {
+  margin: 0 0 16px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.form-section-title i {
+  color: #3b82f6;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-half {
+  min-width: 0;
+}
+
+.form-hint {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.required,
+.text-danger {
+  color: #dc2626;
+}
+
+/* Champs */
+.form-group {
+  margin-bottom: 18px;
+}
+.form-section .form-group:last-child {
+  margin-bottom: 0;
+}
+
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+.form-control-custom,
+.form-select-custom {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #1f2937;
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+.form-control-custom:focus,
+.form-select-custom:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+textarea.form-control-custom {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.help-text {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 6px;
+  display: block;
+}
+
+.form-text {
+  font-size: 12px;
+  margin-top: 6px;
+  display: block;
+}
+
+.text-muted {
+  color: #6b7280;
+}
+
+/* Boîte d'info */
+.info-box {
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 16px 18px;
+  color: #1e40af;
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.info-box i {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.info-box p {
+  margin: 0;
+}
+
+/* Boutons */
+.btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #4b5563;
+}
+.btn-ghost:hover {
+  background-color: #f9fafb;
+}
+
+.btn-primary-custom {
+  background-color: #2563eb;
+  color: white;
+}
+.btn-primary-custom:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-primary-custom:disabled,
+.btn-ghost:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Validation des champs */
+.is-invalid {
+  border-color: #dc2626 !important;
+}
+
+.invalid-feedback {
+  display: block;
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Fichier sélectionné */
+.file-selected {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.file-selected i {
+  color: #2563eb;
+  font-size: 18px;
+}
+
+.file-selected span {
+  flex: 1;
+  font-size: 14px;
+  color: #374151;
+}
+
+.btn-remove-file {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-remove-file:hover {
+  background: #e5e7eb;
+  color: #dc2626;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-content {
+    padding: 16px 16px 32px;
+  }
+  .card-header-custom {
+    padding: 20px 20px;
+  }
+  .card-body-custom {
+    padding: 20px;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  .form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .form-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Zone de téléchargement */
+.upload-dropzone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 28px 24px;
+  text-align: center;
+  background: #f8fafc;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.upload-dropzone.is-dragover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.upload-input {
+  display: none;
+}
+
+.upload-icon {
+  font-size: 2rem;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.upload-dropzone.is-dragover .upload-icon {
+  color: #3b82f6;
+}
+
+.upload-text {
+  margin: 0 0 6px 0;
+  color: #475569;
+  font-size: 14px;
+}
+
+.upload-text .upload-btn {
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.upload-text .upload-btn:hover {
+  color: #1d4ed8;
+}
+
+.upload-formats {
+  display: block;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 12px;
+}
+
+.upload-filename {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #0f172a;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #e2e8f0;
+  border-radius: 8px;
+}
+.upload-filename i {
+  color: #22c55e;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

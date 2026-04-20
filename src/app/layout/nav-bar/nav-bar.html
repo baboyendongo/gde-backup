@@ -1,0 +1,124 @@
+<header class="navbar-custom">
+  <div class="navbar-container">
+    
+    <!-- Left Section: Breadcrumb & Search -->
+    <div class="navbar-left">
+      <div class="breadcrumb-section">
+        <div class="breadcrumb-title">
+          <i class="bi bi-grid-3x3-gap"></i>
+          <span>Gestion des Demandes d'Évolution</span>
+        </div>
+      </div>
+      
+      <!-- Quick Search -->
+      <!-- <div class="search-container">
+        <i class="bi bi-search search-icon"></i>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Rechercher une demande..."
+          [(ngModel)]="searchQuery"
+          (keyup.enter)="onSearch()"
+        >
+        <kbd class="search-kbd">Ctrl K</kbd>
+      </div> -->
+    </div>
+
+    <!-- Right Section: Actions & Profile -->
+    <div class="navbar-right">
+      
+      <!-- Quick Actions -->
+      <!-- <button class="action-btn" title="Créer une demande">
+        <i class="bi bi-plus-circle"></i>
+      </button> -->
+
+      <!-- Notifications -->
+      <div class="notification-wrapper" (click)="toggleNotifications()">
+        <button class="action-btn notification-btn">
+          <i class="bi bi-bell"></i>
+          <span class="notification-badge" *ngIf="notificationCount > 0">{{ notificationCount }}</span>
+        </button>
+        
+        <!-- Notifications Dropdown -->
+        <div class="notification-dropdown" *ngIf="showNotifications">
+          <div class="dropdown-header">
+            <h4>Notifications</h4>
+            <span class="badge-count">{{ notificationCount }}</span>
+          </div>
+          <div class="notification-list" *ngIf="notifications.length; else emptyNotifs">
+            <div class="notification-item" *ngFor="let notif of notifications" (click)="openNotification(notif)">
+              <div class="notif-icon" [class.unread]="!notif.read">
+                <i [class]="notif.icon"></i>
+              </div>
+              <div class="notif-content">
+                <p class="notif-title">{{ notif.title }}</p>
+                <p class="notif-message">{{ notif.message }}</p>
+                <span class="notif-time">{{ formatTime(notif.createdAt) }}</span>
+              </div>
+            </div>
+          </div>
+          <ng-template #emptyNotifs>
+            <div class="notification-item" style="cursor: default;">
+              <div class="notif-icon">
+                <i class="bi bi-inbox"></i>
+              </div>
+              <div class="notif-content">
+                <p class="notif-title">Aucune notification</p>
+                <p class="notif-message">Les changements de statut apparaîtront ici.</p>
+              </div>
+            </div>
+          </ng-template>
+          <div class="dropdown-footer">
+            <button type="button" class="view-all-link" (click)="$event.stopPropagation(); markAllNotificationsRead()">
+              Marquer tout comme lu
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="separator"></div>
+
+      <!-- User Profile -->
+      <div class="user-profile" (click)="toggleProfileMenu()">
+        <div class="user-avatar">
+          <span>{{ getUserInitials() }}</span>
+        </div>
+        <div class="user-info">
+          <div class="user-name">{{ displayUserFullName }}</div>
+          <div class="user-role"> {{ displayUserRole }}</div>
+        </div>
+        <i class="bi bi-chevron-down dropdown-icon" [class.rotated]="showProfileMenu"></i>
+
+        <!-- Profile Dropdown -->
+        <div class="profile-dropdown" *ngIf="showProfileMenu">
+          <div class="dropdown-header">
+            <div class="profile-avatar-large">
+              <span>{{ getUserInitials() }}</span>
+            </div>
+            <div>
+              <h4>{{ displayUserFullName }}</h4>
+              <p>{{ displayUserEmail }}</p>
+            </div>
+          </div>
+          <div class="dropdown-menu-items">
+            <!-- <a href="#" class="menu-item">
+              <i class="bi bi-person"></i>
+              <span>Mon profil</span>
+            </a> -->
+           
+            <a [href]="'mailto:' + supportEmail + '?subject=Demande d\'aide - Gestion des Évolutions SI'" class="menu-item" title="Envoyer un email de support">
+              <i class="bi bi-question-circle"></i>
+              <span>Aide & Support</span>
+            </a>
+            <div class="menu-separator"></div>
+            <button class="menu-item logout-item" (click)="logout()">
+              <i class="bi bi-box-arrow-right"></i>
+              <span>Déconnexion</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</header>
