@@ -363,6 +363,10 @@
   letter-spacing: 0.5px;
 }
 
+.stat-label-soumises {
+  color: #2563eb;
+}
+
 .stat-progress {
   display: flex;
   align-items: center;
@@ -700,6 +704,13 @@
   flex-shrink: 0;
 }
 
+.item-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -713,11 +724,26 @@
   white-space: nowrap;
 }
 
+.badge-secondary {
+  font-size: 10px;
+  padding: 5px 10px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
 .badge-status-cree,
 .badge-status-creé,
 .badge-status-creee {
   background: #dbeafe;
   color: #1e40af;
+}
+
+.badge-status-initie,
+.badge-status-initiee,
+.badge-status-initiated {
+  background: #ede9fe;
+  color: #6d28d9;
 }
 
 .badge-status-en_cours,
@@ -742,6 +768,13 @@
   color: #065f46;
 }
 
+.badge-status-rejete,
+.badge-status-rejetee,
+.badge-status-rejected {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .badge-status-en_attente,
 .badge-status-enattente {
   background: #fed7aa;
@@ -751,6 +784,12 @@
 .badge-status-a_corriger_par_demandeur {
   background: #fef3c7;
   color: #92400e;
+}
+
+.badge-status-submited,
+.badge-status-submitted {
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .badge-default {
@@ -1227,6 +1266,11 @@
     width: 100%;
     margin-left: 0;
     margin-top: 12px;
+    justify-content: space-between;
+  }
+
+  .item-badges {
+    align-items: flex-start;
   }
 
   .overview-grid {

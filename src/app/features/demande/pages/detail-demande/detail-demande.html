@@ -14,8 +14,14 @@
         <span>Mes demandes</span>
       </a>
       <span class="detail-ref">
+        Référence de la demande :
         {{
-          (demande.typedemande === 'PARAMETRABLE' ? 'PARMS' : 'EVO') + '-' + demande.id
+          (demande.typedemande === 'PARAMETRABLE' ? 'PARMS' : 'EVO') + '-' +
+          (
+            $any(demande).referencedemande
+              ? $any(demande).referencedemande
+              : demande.id
+          )
         }}
       </span>
     </div>
@@ -114,21 +120,21 @@
               placeholder="Ajouter un commentaire..."
               rows="3"
               [disabled]="isAddingComment"></textarea>
-            <div class="comment-file-row">
-              <input
+           <div class="comment-file-row">
+         <!--       <input
                 #commentFileInput
                 type="file"
                 class="comment-file-input"
                 (change)="onCommentFileSelected($event)"
-                [disabled]="isUploadingCommentFile" />
-              <button
+                [disabled]="isUploadingCommentFile" /> -->
+              <!-- <button
                 type="button"
                 class="btn-comment"
                 (click)="uploadCommentFile(commentFileInput)"
                 [disabled]="!selectedCommentFile || isUploadingCommentFile">
                 <span *ngIf="!isUploadingCommentFile"><i class="bi bi-upload"></i> Ajouter fichier</span>
                 <span *ngIf="isUploadingCommentFile"><i class="bi bi-arrow-repeat spin"></i> Upload...</span>
-              </button>
+              </button> -->
             </div>
             <p class="comment-file-name" *ngIf="selectedCommentFile">
               Fichier sélectionné : {{ selectedCommentFile.name }}

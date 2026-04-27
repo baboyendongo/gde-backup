@@ -885,6 +885,8 @@ canEscalateToPartenaire(): boolean {
     if (!this.demande) return false;
     if (!(this.isSI() || this.isAdmin())) return false;
     if (this.isDemandeInitiee() || this.isDemandeRejetee()) return false;
+    // Si un statut final est déjà défini, le retour à l'expéditeur n'est plus autorisé.
+    if (this.getCurrentFinalStatusCode()) return false;
     // Si la demande est escaladée/traitée chez admin, on masque le bouton de retour.
     if (this.isEncoursChezAdminStatus()) return false;
     if (this.isRetournerSiStatus()) return true;
@@ -926,17 +928,33 @@ canEscalateToPartenaire(): boolean {
    * Demande validée (done) : prête à être marquée résolue via le bouton unique "Résolue".
    */
   isDemandeValideePourResolue(): boolean {
-    const sRaw = this.getDisplayStatut();
-    if (!sRaw) {
+    const status = this.normalizeStatusKey(this.getDisplayStatut());
+    if (!status) {
       return false;
     }
-    const s = String(sRaw).toUpperCase();
+
     // Si déjà résolue / clôturée / rejetée -> pas de bouton "Résolue"
-    if (s.includes('RESOLU') || s.includes('CLOTUR') || s.includes('REJET') || s.includes('CLOSE')) {
+    if (
+      status.includes('RESOLU')
+      || status.includes('CLOTUR')
+      || status.includes('REJET')
+      || status.includes('CLOSE')
+    ) {
       return false;
     }
-    // Dès qu'une demande est acceptée/validée, seule l'action "Résolue" doit rester possible
-    return s.includes('ACCEPTE') || s.includes('ACCEPT') || s.includes('VALID') || s.includes('DONE') || s.includes('VALIDEE');
+
+    // Dès qu'une demande est acceptée/validée, seule l'action "Résolue" doit rester possible.
+    // On couvre plusieurs variantes backend/front (avec/sans accents, libellés métier, etc.).
+    return status.includes('ACCEPT')
+      || status.includes('ACCEPTE')
+      || status.includes('VALID')
+      || status.includes('DONE')
+      || status === 'VALIDE'
+      || status === 'VALIDEE'
+      || status === 'VALIDER'
+      || status === 'APPROVED'
+      || status === 'DEMANDE_ACCEPTEE'
+      || status === 'DEMANDE_ACCEPTEE';
   }
 
   /** Afficher uniquement le bouton "Résolue" (SI ou Admin). */
@@ -1366,8 +1384,9 @@ canEscalateToPartenaire(): boolean {
       return [];
     }
 
-    // Première affectation du statut final (demande validée).
-    return [...this.resolueCodes];
+    // Première affectation du statut final (demande d'évolution validée) :
+    // on commence par TEST pour respecter le workflow backend.
+    return ['TEST'];
   }
 
   private getCurrentFinalStatusCode(): string {

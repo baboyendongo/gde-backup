@@ -19,6 +19,10 @@
             <span class="kpi-caption">Demandes actives</span>
             <strong>{{ stats.enCours }}</strong>
           </div>
+          <div class="header-kpi-item">
+            <span class="kpi-caption">30 derniers jours</span>
+            <strong>{{ getLast30DaysCount() }}</strong>
+          </div>
         </div>
       </div>
       <div class="header-right">
@@ -74,6 +78,19 @@
             </div>
           </div>
 
+          <div class="stat-card">
+            <div class="stat-icon yellow">
+              <i class="bi bi-clock-history"></i>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-value">{{ stats.enCours }}</h3>
+              <p class="stat-label">Demandes en cours</p>
+              <div class="stat-sub">
+                <span class="percentage">{{ stats.total > 0 ? ((stats.enCours / stats.total) * 100).toFixed(0) : 0 }}%</span>
+              </div>
+            </div>
+          </div>
+
           <!-- <div class="stat-card">
             <div class="stat-icon yellow">
               <i class="bi bi-clock-history"></i>
@@ -118,10 +135,10 @@
               <i class="bi bi-plus-circle"></i>
             </div>
             <div class="stat-content">
-              <h3 class="stat-value">{{ statusKpi.created }}</h3>
-              <p class="stat-label">Demandes créées</p>
+              <h3 class="stat-value">{{ statusKpi.submitted }}</h3>
+              <p class="stat-label stat-label-soumises">Demandes soumises</p>
               <div class="stat-sub">
-                <span class="percentage">{{ stats.total > 0 ? ((statusKpi.created / stats.total) * 100).toFixed(0) : 0 }}%</span>
+                <span class="percentage">{{ stats.total > 0 ? ((statusKpi.submitted / stats.total) * 100).toFixed(0) : 0 }}%</span>
               </div>
             </div>
           </div>
@@ -138,19 +155,6 @@
               </div>
             </div>
           </div> -->
-
-          <div class="stat-card">
-            <div class="stat-icon orange">
-              <i class="bi bi-shield-check"></i>
-            </div>
-            <div class="stat-content">
-              <h3 class="stat-value">{{ statusKpi.enCoursAdmin }}</h3>
-              <p class="stat-label">En cours admin</p>
-              <div class="stat-sub">
-                <span class="percentage">{{ stats.total > 0 ? ((statusKpi.enCoursAdmin / stats.total) * 100).toFixed(0) : 0 }}%</span>
-              </div>
-            </div>
-          </div>
 
           <!-- <div class="stat-card">
             <div class="stat-icon purple">
@@ -202,6 +206,7 @@
             <div class="completion-fill" [style.width.%]="getCompletionPercentage()"></div>
           </div>
           <p class="completion-text">{{ statusKpi.accepte }} demandes acceptées sur {{ stats.total }}</p>
+          <p class="completion-text">{{ getThirtyDaysTrendLabel() }}</p>
         </div>
       </div>
 
@@ -214,7 +219,7 @@
         <div class="overview-grid">
           <div class="overview-card">
             <h4>Créé</h4>
-            <p class="overview-number">{{ statusKpi.created }}</p>
+            <p class="overview-number">{{ statusKpi.submitted }}</p>
             <span class="overview-detail">CREATED</span>
           </div>
           <div class="overview-card">
@@ -307,9 +312,17 @@
                   </div>
                 </div>
                 <div class="item-right">
-                  <span class="badge" [ngClass]="getStatusClass(demande.statut)">
-                    {{ getStatusLabel(demande.statut) }}
-                  </span>
+                  <div class="item-badges">
+                    <span class="badge" [ngClass]="getStatusClass(getRecentMainStatusCode(demande))">
+                      {{ getStatusLabel(getRecentMainStatusCode(demande)) }}
+                    </span>
+                    <span
+                      class="badge badge-secondary"
+                      *ngIf="hasRecentFinalStatus(demande)"
+                      [ngClass]="getStatusClass(getRecentFinalStatusCode(demande))">
+                      Final: {{ getStatusLabel(getRecentFinalStatusCode(demande)) }}
+                    </span>
+                  </div>
                   <a [routerLink]="['/demandes', demande.id]" class="view-link" title="Voir détails">
                     <i class="bi bi-arrow-right"></i>
                   </a>
@@ -340,7 +353,7 @@
                 <i class="bi bi-diagram-2"></i>
                 Applications actives
               </h3>
-              <p class="section-subtitle">Top 3 des applications</p>
+              <p class="section-subtitle">Top 3 sur {{ allDemandes.length }} demandes</p>
             </div>
             <div class="app-list">
               <div *ngFor="let app of getTopApplications(); trackBy: trackByApp" class="app-item">
@@ -442,8 +455,8 @@
               <i class="bi bi-speedometer2"></i>
             </div>
             <h4>Moyenne</h4>
-            <p class="overview-number">{{ stats.total > 0 ? (stats.total / 12).toFixed(1) : 0 }}</p>
-            <span class="overview-detail">par mois</span>
+            <p class="overview-number">{{ getAveragePerActiveMonth() }}</p>
+            <span class="overview-detail">par mois actif ({{ getActiveMonthCount() }} mois)</span>
           </div>
         </div>
       </div>

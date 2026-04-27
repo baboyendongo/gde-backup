@@ -1243,3 +1243,261 @@
     align-self: flex-end;
   }
 }
+
+/* ============================================
+  UI REFINEMENT - STATISTIQUE
+   ============================================ */
+
+.statistiques-page {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 16px;
+}
+
+.stats-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stats-title i {
+  color: #2563eb;
+  font-size: 22px;
+}
+
+.stats-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stats-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stats-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #065f46;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+.stats-chip-danger {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.kpi-card {
+  padding: 16px;
+  gap: 8px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.kpi-card-total {
+  border-left: 4px solid #3b82f6;
+}
+
+.kpi-card-success {
+  border-left: 4px solid #10b981;
+}
+
+.kpi-card-warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.kpi-card-danger {
+  border-left: 4px solid #ef4444;
+}
+
+.kpi-extra-block {
+  margin: 2px 0 22px 0;
+  padding: 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+
+.kpi-extra-head h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.kpi-extra-head h3 i {
+  color: #2563eb;
+}
+
+.kpi-grid-extra {
+  margin-bottom: 0;
+}
+
+.kpi-card-extra {
+  border: 1px solid #dbeafe;
+  background: #ffffff;
+}
+
+.kpi-card-extra small {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.chart-canvas {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.section-title {
+  margin: 0 0 14px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title i {
+  color: #2563eb;
+}
+
+.detail-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.detail-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+@media (max-width: 768px) {
+  .stats-title {
+    font-size: 22px;
+  }
+}
+
+.kpi-grid-secondary {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.chart-legend-inline {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.chart-legend-item strong {
+  margin-left: auto;
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.chart-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+  .kpi-grid-secondary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .kpi-grid-secondary {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+  DISPOSITION + AFFICHAGE GRAPHES
+   ============================================ */
+
+.stats-section-head {
+  margin: 6px 0 14px 0;
+}
+
+.stats-section-head h2 {
+  margin: 0 0 4px 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.stats-section-head p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.charts-grid {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-items: stretch;
+}
+
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 430px;
+}
+
+.chart-card-full {
+  grid-column: 1 / -1;
+}
+
+.chart-card-full .chart-legend-inline {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.chart-canvas {
+  display: block;
+  width: 100%;
+  height: 260px;
+  min-height: 260px;
+  max-height: 260px;
+}
+
+.chart-legend-inline {
+  margin-top: 14px;
+}
+
+@media (max-width: 768px) {
+  .stats-section-head {
+    margin-top: 2px;
+  }
+
+  .chart-card {
+    min-height: 400px;
+  }
+
+  .chart-card-full .chart-legend-inline {
+    grid-template-columns: 1fr;
+  }
+}

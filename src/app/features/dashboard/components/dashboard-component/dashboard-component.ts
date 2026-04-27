@@ -34,7 +34,7 @@ export class DashboardComponent implements OnInit {
   recentDemandes: Demande[] = [];
   allDemandes: Demande[] = [];
   statusKpi = {
-    created: 0,
+    submitted: 0,
     enCoursSi: 0,
     enCoursAdmin: 0,
     enCoursPartenaire: 0,
@@ -54,6 +54,7 @@ export class DashboardComponent implements OnInit {
   isLoading = true;
   userName = '';
   currentDate = new Date();
+  private lastRefreshDate = new Date();
 
   constructor(
     private demandeService: DemandeService,
@@ -86,6 +87,8 @@ export class DashboardComponent implements OnInit {
           this.recentDemandes = [...this.allDemandes]
             .sort((a, b) => new Date(b.datecreate || 0).getTime() - new Date(a.datecreate || 0).getTime())
             .slice(0, 5);
+          this.lastRefreshDate = new Date();
+          this.currentDate = this.lastRefreshDate;
           this.cdr.detectChanges();
         },
         error: (err: any) => {
@@ -125,9 +128,9 @@ export class DashboardComponent implements OnInit {
     this.stats.completionRate = this.stats.total > 0 ? Math.round((acceptedCount / this.stats.total) * 100) : 0;
 
     this.statusKpi = {
-      created: demandes.filter(d => {
+      submitted: demandes.filter(d => {
         const s = this.normalizeStatus(d.statut || '');
-        return s === 'CREATED' || s === 'CREE' || s === 'CREEE';
+        return s === 'SUBMITED' || s === 'SUBMITTED' || s === 'SOUMIS' || s === 'SOUMISE';
       }).length,
       enCoursSi: demandes.filter(d => this.normalizeStatus(d.statut || '') === 'ENCOURS_CHEZ_SI').length,
       enCoursAdmin: demandes.filter(d => this.normalizeStatus(d.statut || '') === 'ENCOURS_CHEZ_ADMIN').length,
@@ -178,36 +181,54 @@ export class DashboardComponent implements OnInit {
       .replace(/[\s-]+/g, '_');
 
     const labelMap: Record<string, string> = {
+      INITIE: 'Demande Initiée',
+      INITIEE: 'Demande Initiée',
+      INITIATED: 'Demande Initiée',
       CREATED: 'Créé',
       CREE: 'Créé',
       CREEE: 'Créé',
       EN_COURS: 'En cours',
       ENCOURS: 'En cours',
-      EN_COURS_DE_TRAITEMENT_SI: 'En cours SI',
-      ENCOURS_CHEZ_SI: 'En cours SI',
-      EN_COURS_DE_TRAITEMENT_ADMIN: 'En cours admin',
-      ENCOURS_CHEZ_ADMIN: 'En cours admin',
-      EN_COURS_DE_TRAITEMENT_PARTENAIRE: 'En cours partenaire',
-      ENCOURS_CHEZ_PARTENAIRE: 'En cours partenaire',
-      VALIDEE: 'Acceptée',
-      VALIDER: 'Acceptée',
-      ACCEPTE: 'Acceptée',
-      ACCEPTEE: 'Acceptée',
+      EN_COURS_DE_TRAITEMENT_SI: 'Workflow au niveau SI',
+      ENCOURS_CHEZ_SI: 'Workflow au niveau SI',
+      EN_COURS_DE_TRAITEMENT_ADMIN: 'Workflow au niveau ADMIN',
+      ENCOURS_CHEZ_ADMIN: 'Workflow au niveau ADMIN',
+      EN_COURS_DE_TRAITEMENT_PARTENAIRE: 'Workflow au niveau Partenaire',
+      ENCOURS_CHEZ_PARTENAIRE: 'Workflow au niveau Partenaire',
+      VALIDEE: 'Demande acceptée',
+      VALIDER: 'Demande acceptée',
+      ACCEPTE: 'Demande acceptée',
+      ACCEPTEE: 'Demande acceptée',
       TERMINE: 'Terminée',
       TERMINEE: 'Terminée',
       DONE: 'Terminée',
       EN_ATTENTE: 'En attente',
       ENATTENTE: 'En attente',
-      REJETE: 'Rejetée',
-      REJETEE: 'Rejetée',
-      REJECTED: 'Rejetée',
-      A_CORRIGER_PAR_DEMANDEUR: 'À corriger par demandeur',
+      REJETE: 'Rejeté',
+      REJETEE: 'Rejeté',
+      REJECTED: 'Rejeté',
+      A_CORRIGER_PAR_DEMANDEUR: 'Retourné au demandeur',
+      RETOURNER_SI: "Retour à l'équipe SI",
+      SUBMITED: 'Demande soumise',
+      SUBMITTED: 'Demande soumise',
       LIVRE: 'Livré',
       TEST: 'Test',
       PREPROD: 'Préprod'
     };
 
     return labelMap[normalized] || statut;
+  }
+
+  getRecentMainStatusCode(demande: Demande): string {
+    return this.normalizeStatus(demande?.statut || '');
+  }
+
+  getRecentFinalStatusCode(demande: Demande): string {
+    return this.getFinalStatusCode(demande);
+  }
+
+  hasRecentFinalStatus(demande: Demande): boolean {
+    return !!this.getRecentFinalStatusCode(demande);
   }
 
   private getFinalStatusCode(demande: any): string {
@@ -253,6 +274,53 @@ export class DashboardComponent implements OnInit {
       .map(([app, count]) => ({ app, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 3);
+  }
+
+  getAveragePerActiveMonth(): number {
+    const activeMonths = this.getActiveMonthCount();
+    if (!activeMonths) return 0;
+    return Number((this.stats.total / activeMonths).toFixed(1));
+  }
+
+  getActiveMonthCount(): number {
+    if (!this.allDemandes.length) return 0;
+    const months = new Set<string>();
+    this.allDemandes.forEach((d) => {
+      const date = d?.datecreate ? new Date(d.datecreate) : null;
+      if (!date || Number.isNaN(date.getTime())) return;
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      months.add(key);
+    });
+    return months.size;
+  }
+
+  getLast30DaysCount(): number {
+    const now = Date.now();
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    return this.allDemandes.filter((d) => {
+      const t = d?.datecreate ? new Date(d.datecreate).getTime() : NaN;
+      return !Number.isNaN(t) && now - t <= thirtyDaysMs;
+    }).length;
+  }
+
+  getPrevious30DaysCount(): number {
+    const now = Date.now();
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    return this.allDemandes.filter((d) => {
+      const t = d?.datecreate ? new Date(d.datecreate).getTime() : NaN;
+      if (Number.isNaN(t)) return false;
+      const age = now - t;
+      return age > thirtyDaysMs && age <= (2 * thirtyDaysMs);
+    }).length;
+  }
+
+  getThirtyDaysTrendLabel(): string {
+    const current = this.getLast30DaysCount();
+    const previous = this.getPrevious30DaysCount();
+    const diff = current - previous;
+    if (diff > 0) return `+${diff} vs 30 jours précédents`;
+    if (diff < 0) return `${diff} vs 30 jours précédents`;
+    return 'Stable vs 30 jours précédents';
   }
 
   trackByDemandeId(_: number, d: Demande): number {

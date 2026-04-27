@@ -49,6 +49,19 @@ export class MesDemandes implements OnInit, OnDestroy {
 
   private loadingTimeout?: ReturnType<typeof setTimeout>;
 
+  // Ordre métier souhaité pour le filtre "statut"
+  private readonly statusFilterOrder: string[] = [
+    'INITIE',
+    'ENCOURS_CHEZ_SI',
+    'REJECTED',
+    'ENCOURS_CHEZ_ADMIN',
+    'ENCOURS_CHEZ_PARTENAIRE',
+    'ACCEPTE',
+    'A_CORRIGER_PAR_DEMANDEUR',
+    'RETOURNER_SI',
+    'SUBMITED'
+  ];
+
   constructor(
     private router: Router, 
     private demandeService: DemandeService,
@@ -226,6 +239,48 @@ export class MesDemandes implements OnInit, OnDestroy {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^A-Z0-9]/g, ''); // supprime espaces, underscores, tirets, etc.
+  }
+
+  private toCanonicalStatusCode(input: unknown): string {
+    const upper = String(input ?? '').trim().toUpperCase().replace(/\s+/g, '_').replace(/-/g, '_');
+    const aliasMap: Record<string, string> = {
+      CREE: 'INITIE',
+      CREEE: 'INITIE',
+      CREATED: 'INITIE',
+      INITIEE: 'INITIE',
+      INITIATED: 'INITIE',
+      EN_COURS_DE_TRAITEMENT_SI: 'ENCOURS_CHEZ_SI',
+      EN_COURS_DE_TRAITEMENT_ADMIN: 'ENCOURS_CHEZ_ADMIN',
+      EN_COURS_DE_TRAITEMENT_PARTENAIRE: 'ENCOURS_CHEZ_PARTENAIRE',
+      EN_COURS: 'SUBMITED',
+      ENCOURS: 'SUBMITED',
+      SUBMITTED: 'SUBMITED',
+      VALIDEE: 'ACCEPTE',
+      VALIDER: 'ACCEPTE',
+      ACCEPTEE: 'ACCEPTE',
+      REJETE: 'REJECTED',
+      REJETEE: 'REJECTED',
+      RETOUR_A_L_EQUIPE_SI: 'RETOURNER_SI',
+      RETOUR_AU_SI: 'RETOURNER_SI',
+      RETOUR_SI: 'RETOURNER_SI'
+    };
+    return aliasMap[upper] ?? upper;
+  }
+
+  private getPreferredStatusLabel(input: unknown): string {
+    const canonical = this.toCanonicalStatusCode(input);
+    const labelMap: Record<string, string> = {
+      INITIE: 'Demande Initiée',
+      ENCOURS_CHEZ_SI: 'Workflow au niveau SI',
+      REJECTED: 'Rejeté',
+      ENCOURS_CHEZ_ADMIN: 'Workflow au niveau ADMIN',
+      ENCOURS_CHEZ_PARTENAIRE: 'Workflow au niveau Partenaire',
+      ACCEPTE: 'Demande acceptée',
+      A_CORRIGER_PAR_DEMANDEUR: 'Retourné au demandeur',
+      RETOURNER_SI: "Retour à l'équipe SI",
+      SUBMITED: 'Demande soumise'
+    };
+    return labelMap[canonical] ?? this.getStatusLabel(canonical);
   }
 
   private getBackendStatusLabel(statusCode: string): string | null {
@@ -526,14 +581,19 @@ export class MesDemandes implements OnInit, OnDestroy {
       if (s == null) continue;
       if (typeof s === 'string') {
         const val = s.trim();
-        if (val) items.push({ value: val, label: val });
+        if (val) {
+          const canonical = this.toCanonicalStatusCode(val);
+          items.push({ value: canonical, label: this.getPreferredStatusLabel(canonical) });
+        }
         continue;
       }
       if (typeof s === 'object') {
         const o = s as Record<string, unknown>;
         const code = String(o['code'] ?? o['statut'] ?? o['name'] ?? o['nom'] ?? '').trim();
-        const label = String(o['libelle'] ?? o['label'] ?? o['nom'] ?? o['name'] ?? code).trim();
-        if (code) items.push({ value: code, label: label || code });
+        if (code) {
+          const canonical = this.toCanonicalStatusCode(code);
+          items.push({ value: canonical, label: this.getPreferredStatusLabel(canonical) });
+        }
       }
     }
 
@@ -541,8 +601,8 @@ export class MesDemandes implements OnInit, OnDestroy {
     for (const demande of this.demandes) {
       const value = this.getDisplayStatut(demande);
       if (!value) continue;
-      const label = this.getStatusLabelFromDemande(demande);
-      items.push({ value, label: label || value });
+      const canonical = this.toCanonicalStatusCode(value);
+      items.push({ value: canonical, label: this.getPreferredStatusLabel(canonical) });
     }
 
     const seen = new Set<string>();
@@ -552,7 +612,18 @@ export class MesDemandes implements OnInit, OnDestroy {
       seen.add(key);
       return true;
     });
-    return unique.sort((a, b) => a.label.localeCompare(b.label));
+    const orderIndex = new Map<string, number>(
+      this.statusFilterOrder.map((code, index) => [this.toCanonicalStatusCode(code), index])
+    );
+
+    return unique.sort((a, b) => {
+      const ai = orderIndex.get(this.toCanonicalStatusCode(a.value));
+      const bi = orderIndex.get(this.toCanonicalStatusCode(b.value));
+      if (ai != null && bi != null) return ai - bi;
+      if (ai != null) return -1;
+      if (bi != null) return 1;
+      return a.label.localeCompare(b.label);
+    });
   }
 
   getApplicationDisplay(app: string | unknown): string {

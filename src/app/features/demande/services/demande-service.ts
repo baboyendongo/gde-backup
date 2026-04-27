@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, throwError, forkJoin } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
@@ -447,21 +447,38 @@ export class DemandeService {
         responseType: 'text'
       }).pipe(map((res) => this.parseTextResponse(res.body)));
 
-    // Certains backends attendent un autre contrat que { id, code }.
+    const postResolueWithQuery = (query: Record<string, string>) =>
+      this.http.post(url, null, {
+        params: new HttpParams({ fromObject: query }),
+        observe: 'response',
+        responseType: 'text'
+      }).pipe(map((res) => this.parseTextResponse(res.body)));
+
+    // Certains backends exposent des contrats différents pour cette route.
+    // On tente plusieurs payloads avant d'échouer définitivement.
     return postResolue({ id: demandeId, code: statutCode }).pipe(
-      catchError((err) => {
-        if (err?.status !== 400) {
-          return throwError(() => err);
-        }
-        return postResolue({ demandeId, statutFinal: statutCode }).pipe(
-          catchError((err2) => {
-            if (err2?.status !== 400) {
-              return throwError(() => err2);
-            }
-            return postResolue({ demandeId, code: statutCode });
-          })
-        );
-      })
+      catchError(() =>
+        postResolue({ demandeId, statutFinal: statutCode }).pipe(
+          catchError(() =>
+            postResolue({ demandeId, code: statutCode }).pipe(
+              catchError(() =>
+                postResolue({ idDemande: demandeId, codeStatutFinal: statutCode }).pipe(
+                  catchError(() =>
+                    postResolueWithQuery({ id: String(demandeId), code: statutCode }).pipe(
+                      catchError(() =>
+                        postResolueWithQuery({
+                          demandeId: String(demandeId),
+                          statutFinal: statutCode
+                        })
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     );
   }
 

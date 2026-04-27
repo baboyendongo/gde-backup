@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { NotificationService, Notification } from '../../../services/notification.service';
@@ -14,17 +14,12 @@ export class ToastComponent implements OnInit, OnDestroy {
   notifications: Notification[] = [];
   private subscription?: Subscription;
 
-  constructor(
-    private readonly notificationService: NotificationService,
-    private readonly cdr: ChangeDetectorRef
-  ) {}
+  constructor(private readonly notificationService: NotificationService) {}
 
   ngOnInit(): void {
     this.subscription = this.notificationService.notifications$.subscribe(
       notifications => {
         this.notifications = notifications;
-        // Forcer la détection de changement pour un rendu immédiat
-        this.cdr.detectChanges();
       }
     );
   }

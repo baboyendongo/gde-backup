@@ -1,8 +1,21 @@
 <div class="statistiques-page">
-  <div class="stats-header">
-    <div>
-      <h1 class="stats-title">Statistiques</h1>
+  <div class="stats-header stats-header-panel">
+    <div class="stats-header-content">
+      <h1 class="stats-title">
+        <i class="bi bi-graph-up-arrow"></i>
+        Statistiques
+      </h1>
       <p class="stats-subtitle">Suivi global des demandes d'évolution</p>
+      <div class="stats-chip-row" *ngIf="stats && !isLoading">
+        <span class="stats-chip">
+          <i class="bi bi-check2-circle"></i>
+          {{ getAcceptanceRate() }}% acceptées
+        </span>
+        <span class="stats-chip stats-chip-danger">
+          <i class="bi bi-x-circle"></i>
+          {{ getRejectionRate() }}% rejetées
+        </span>
+      </div>
     </div>
     <button type="button" class="btn-refresh" (click)="loadStatistiques()">
       <i class="bi bi-arrow-clockwise"></i>
@@ -22,46 +35,142 @@
   </div>
 
   <ng-container *ngIf="stats && !isLoading">
+    <div class="stats-section-head">
+      <h2>Vue KPI</h2>
+      <p>Indicateurs de suivi opérationnel des demandes</p>
+    </div>
     <div class="kpi-grid">
-      <div class="kpi-card">
+      <div class="kpi-card kpi-card-total">
         <span>Total demandes</span>
         <strong>{{ stats.totalDemandes }}</strong>
       </div>
-      <div class="kpi-card">
+      <div class="kpi-card kpi-card-success">
         <span>Acceptées</span>
         <strong>{{ getAcceptedCount() }}</strong>
       </div>
-      <div class="kpi-card">
-        <span>En cours admin</span>
-        <strong>{{ getEnCoursAdminCount() }}</strong>
+      <div class="kpi-card kpi-card-warning">
+        <span>En cours</span>
+        <strong>{{ getEnCoursTotalCount() }}</strong>
       </div>
-      <div class="kpi-card">
+      <div class="kpi-card kpi-card-danger">
         <span>Rejetées</span>
         <strong>{{ stats.demandesRejetees }}</strong>
       </div>
     </div>
+    <div class="kpi-extra-block" *ngIf="getStatusTableRows().length > 0">
+      <div class="stats-section-head kpi-extra-head">
+        <h3><i class="bi bi-collection"></i> Autres KPI par statut</h3>
+        <!-- <p>Complément de la Vue KPI avec tous les statuts réels remontés par le backend</p> -->
+      </div>
+      <div class="kpi-grid kpi-grid-secondary kpi-grid-extra">
+        <div class="kpi-card kpi-card-extra" *ngFor="let row of getStatusTableRows()">
+          <span>{{ row.label }}</span>
+          <strong>{{ row.count }}</strong>
+          <small>{{ row.pct }}% du total</small>
+        </div>
+      </div>
+    </div>
 
+    <div class="stats-section-head">
+      <h2>Vue Graphiques</h2>
+      <p>Répartition visuelle des volumes par priorité, type et statut final</p>
+    </div>
     <div class="charts-grid">
-      <div class="chart-card">
-        <h3>Répartition par priorité</h3>
+      <div class="chart-card chart-card-full">
+        <h3 class="chart-title">Répartition par priorité</h3>
+        <p class="chart-subtitle">Volume de demandes par niveau d'urgence</p>
         <canvas #prioriteCanvas class="chart-canvas"></canvas>
+        <div class="chart-legend-inline">
+          <div class="chart-legend-item" *ngFor="let item of getPrioriteLegendItems()">
+            <span class="chart-dot" [style.background]="item.color"></span>
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }} ({{ item.pct }}%)</strong>
+          </div>
+        </div>
       </div>
       <div class="chart-card">
-        <h3>Répartition par type</h3>
+        <h3 class="chart-title">Répartition par type</h3>
+        <p class="chart-subtitle">Part paramétrage vs évolution</p>
         <canvas #typeCanvas class="chart-canvas"></canvas>
+        <div class="chart-legend-inline">
+          <div class="chart-legend-item" *ngFor="let item of getTypeLegendItems()">
+            <span class="chart-dot" [style.background]="item.color"></span>
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }} ({{ item.pct }}%)</strong>
+          </div>
+        </div>
       </div>
       <div class="chart-card">
-        <h3>Statuts finaux</h3>
+        <h3 class="chart-title">Statuts finaux</h3>
+        <p class="chart-subtitle">Distribution des demandes livrées / test / préprod</p>
         <canvas #finalCanvas class="chart-canvas"></canvas>
+        <div class="chart-legend-inline">
+          <div class="chart-legend-item" *ngFor="let item of getFinalLegendItems()">
+            <span class="chart-dot" [style.background]="item.color"></span>
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }} ({{ item.pct }}%)</strong>
+          </div>
+        </div>
       </div>
       <div class="chart-card chart-card-large">
-        <h3>Créations par mois</h3>
-        <canvas #moisCanvas class="chart-canvas"></canvas>
+        <h3 class="chart-title">Evolution des demandes dans le temps</h3>
+        <p class="chart-subtitle">Nombre de demandes creees par mois</p>
+        <canvas #evolutionCanvas class="chart-canvas"></canvas>
+        <div class="chart-legend-inline">
+          <div class="chart-legend-item" *ngFor="let item of getEvolutionLegendItems()">
+            <span class="chart-dot" [style.background]="item.color"></span>
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-table-card">
+      <h3 class="section-title">
+        <i class="bi bi-lightning-charge"></i>
+        Indicateurs clés
+      </h3>
+      <div class="detail-table-wrap">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>Indicateur</th>
+              <th>Valeur</th>
+              <th>Détail</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Taux d'acceptation</td>
+              <td>{{ getAcceptanceRate() }}%</td>
+              <td>{{ getAcceptedCount() }} demandes acceptées</td>
+            </tr>
+            <tr>
+              <td>Taux de rejet</td>
+              <td>{{ getRejectionRate() }}%</td>
+              <td>{{ stats.demandesRejetees }} demandes rejetées</td>
+            </tr>
+            <tr>
+              <td>Priorité dominante</td>
+              <td>{{ getTopPrioriteLabel() }}</td>
+              <td>{{ getTopPrioriteCount() }} demandes</td>
+            </tr>
+            <tr>
+              <td>Type dominant</td>
+              <td>{{ getTopTypeLabel() }}</td>
+              <td>{{ getTopTypeCount() }} demandes</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
     <div class="detail-table-card" *ngIf="statusLabels.length > 0">
-      <h3>Récapitulatif des statuts</h3>
+      <h3 class="section-title">
+        <i class="bi bi-list-check"></i>
+        Récapitulatif des statuts
+      </h3>
       <div class="detail-table-wrap">
         <table class="detail-table">
           <thead>
@@ -81,5 +190,32 @@
         </table>
       </div>
     </div>
+
+    <div class="detail-table-card" *ngIf="appLabels.length > 0">
+      <h3 class="section-title">
+        <i class="bi bi-grid-1x2"></i>
+        Top applications impactées
+      </h3>
+      <div class="detail-table-wrap">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>Application</th>
+              <th>Nombre</th>
+              <th>Part du total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let label of appLabels; let i = index">
+              <td>{{ label }}</td>
+              <td>{{ appValues[i] }}</td>
+              <td>{{ getAppPctOfTotal(i) }}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="stats-subtitle">Couverture du top affiché : {{ getAppChartCoveragePct() }}% du total</p>
+    </div>
+
   </ng-container>
 </div>

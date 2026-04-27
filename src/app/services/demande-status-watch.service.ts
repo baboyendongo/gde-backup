@@ -37,22 +37,25 @@ export class DemandeStatusWatchService {
         }
 
         const cache = this.loadCache();
-        const tracked = demandes
+        const currentStatuses = demandes
           .map(d => ({
             id: String(d?.id ?? ''),
             objet: (d?.objet ?? '').toString(),
             statut: this.getTrackedStatus(d),
           }))
-          .filter(x => x.id && x.statut)
+          .filter(x => x.id && x.statut);
+
+        const tracked = currentStatuses
           .filter(x => Object.prototype.hasOwnProperty.call(cache, x.id));
 
         const changed = tracked
           .filter(x => cache[x.id] !== x.statut)
           .map(x => ({ ...x, old: cache[x.id] }));
 
-        // Mettre à jour le cache (sans attendre les détails)
+        // Mettre à jour le cache avec tous les statuts courants
+        // (sinon le 1er passage reste vide et aucun changement n'est détecté ensuite).
         const nextCache: StatusCache = {};
-        for (const d of tracked) {
+        for (const d of currentStatuses) {
           const id = d?.id;
           const statut = d?.statut;
           if (id != null && statut != null) nextCache[String(id)] = String(statut);
