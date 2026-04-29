@@ -384,11 +384,13 @@ export class DemandeService {
   addDemande(
     payload: { objet: string; description: string; departement: string; typedemande: string },
     codenp: string,
-    codeapp: string
+    codeapp: string,
+    typedemandeId?: number
   ): Observable<Demande> {
     const params = new URLSearchParams();
     if (codenp != null && String(codenp).trim() !== '') params.set('codenp', String(codenp).trim());
     if (codeapp != null && String(codeapp).trim() !== '') params.set('codeapp', String(codeapp).trim());
+    if (Number.isFinite(Number(typedemandeId))) params.set('typedemande', String(Number(typedemandeId)));
     const query = params.toString();
     const url = query
       ? `${this.apiUrl}/demande/create-demande?${query}`
@@ -419,6 +421,18 @@ export class DemandeService {
    listeNiveauPriorite (): Observable<any[]> {
     return this.http.get<any[]>(
       `${this.apiUrl}/parametre/liste-niveau-priorite`
+    );
+  }
+
+  getTypeDemandes(): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/typedemande`
+    );
+  }
+
+  getTypeDemandeChamps(typeId: number): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/typedemande/${typeId}/champs`
     );
   }
 

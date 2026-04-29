@@ -1,9 +1,16 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, of } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { User, UserStatus } from '../../models/users';
-import { PartenaireService, ApplicationItem, CreateAppRequest } from '../../services/parametre-service';
+import {
+  PartenaireService,
+  ApplicationItem,
+  CreateAppRequest,
+  TypeDemandeItem,
+  TypeDemandeChampItem
+} from '../../services/parametre-service';
 import { CreatePartenaireRequest } from '../../models/partenaire';
 import { NotificationService } from '../../../../services/notification.service';
 import { RolePermissionService } from '../../services/rolepermission.service';
@@ -22,10 +29,12 @@ export class Parametre implements OnInit {
   users: User[] = [];
   filteredUsers: User[] = [];
   searchTerm: string = '';
-  public activeTab: 'users' | 'partners' | 'apps' | 'system' = 'users';
+  public activeTab: 'users' | 'partners' | 'apps' | 'typeConfig' = 'users';
   isLoading = true;
   private loadDoneCount = 0;
-  private readonly LOAD_TOTAL = 3; // users, partenaires, applications
+  // Pour un rendu rapide de la page Paramètre, on ne bloque l'écran
+  // que sur les données nécessaires à l'administration des types.
+  private readonly LOAD_TOTAL = 2; // applications, types demande
 
   // Pagination
   currentPage: number = 1;
@@ -70,13 +79,26 @@ export class Parametre implements OnInit {
   }
 
   rolesFromDatabase: any[] = [];
-  systemConfigs: Array<{ id: string; icon: string; title: string; subtitle: string; category?: string }> = [];
 
   // Applications / Équipes SI
   applications: ApplicationItem[] = [];
   showAppModal = false;
   editingApp: CreateAppRequest | null = null;
   isSavingApp = false;
+
+  // Configuration par type de demande
+  typeDemandes: TypeDemandeItem[] = [];
+  selectedTypeDemande: TypeDemandeItem | null = null;
+  selectedTypeDemandeId: number | null = null;
+  typeDemandeChamps: TypeDemandeChampItem[] = [];
+  isLoadingTypeChamps = false;
+  isSavingTypeDemande = false;
+  isSavingTypeChamp = false;
+  isDeletingTypeDemandeId: number | null = null;
+  editingTypeDemandeId: number | null = null;
+  newTypeDemande = { code: '', libelle: '', description: '', actif: true };
+  newTypeChamp = { code: '', libelle: '', typeChamp: 'TEXT', obligatoire: false, ordre: 0, optionsJson: '' };
+  readonly typeChampOptions = ['TEXT', 'NUMBER', 'DATE', 'SELECT', 'TEXTAREA'];
 
   constructor(
     private partenaireService: PartenaireService,
@@ -95,8 +117,8 @@ export class Parametre implements OnInit {
       this.loadUsers();
       this.loadPartenaires();
       this.loadApplications();
+      this.loadTypeDemandes();
       this.loadRolesFromDatabase();
-      this.initSystemConfigs();
     }, 0);
   }
 
@@ -193,19 +215,333 @@ export class Parametre implements OnInit {
     });
   }
 
-  private initSystemConfigs() {
-    this.systemConfigs = [
-      { id: 'notifications', icon: 'bi-envelope', title: 'Notifications & Emails', subtitle: 'Templates d\'emails, destinataires par défaut, alertes', category: 'Communication' },
-      { id: 'workflow', icon: 'bi-diagram-3', title: 'Workflow des demandes', subtitle: 'Statuts, transitions, délais de traitement', category: 'Processus' },
-      { id: 'ldap', icon: 'bi-diagram-3', title: 'Connexion Active Directory', subtitle: 'Paramètres LDAP, synchronisation des utilisateurs', category: 'Authentification' },
-      { id: 'general', icon: 'bi-sliders', title: 'Paramètres généraux', subtitle: 'Délais, seuils, libellés personnalisés', category: 'Application' },
-      { id: 'logs', icon: 'bi-clock-history', title: 'Logs & Audit', subtitle: 'Historique des actions, traces d\'audit', category: 'Sécurité' },
-      { id: 'export', icon: 'bi-file-earmark-arrow-down', title: 'Export & Sauvegardes', subtitle: 'Exports CSV/Excel, sauvegardes automatiques', category: 'Données' }
-    ];
+  loadTypeDemandes(): void {
+    this.partenaireService.getTypeDemandes().pipe(
+      finalize(() => this.onLoadDone())
+    ).subscribe({
+      next: (items) => {
+        this.typeDemandes = (Array.isArray(items) ? items : []).map((raw) => {
+          const id = this.getTypeDemandeId(raw);
+          return {
+            ...raw,
+            id: id ?? undefined,
+            code: String((raw as any)?.code ?? (raw as any)?.codedemande ?? ''),
+            libelle: String((raw as any)?.libelle ?? (raw as any)?.label ?? ''),
+            actif: (raw as any)?.actif ?? (raw as any)?.active ?? true,
+          } as TypeDemandeItem;
+        });
+        // Exiger une sélection explicite avant d'ajouter un champ
+        if (!this.typeDemandes.some((t) => this.getTypeDemandeId(t) === this.selectedTypeDemandeId)) {
+          this.selectedTypeDemande = null;
+          this.selectedTypeDemandeId = null;
+          this.typeDemandeChamps = [];
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erreur lors du chargement des types de demande', err);
+        this.typeDemandes = [];
+        this.notificationService.show('Erreur lors du chargement des types de demande', 'error', 5000);
+        this.cdr.detectChanges();
+      }
+    });
   }
 
-  onSystemConfigClick(cfg: { id: string }) {
-    this.notificationService.show(`Configuration « ${cfg.id} » à implémenter`, 'info', 3000);
+  private getTypeDemandeId(item: TypeDemandeItem | null | undefined): number | null {
+    const rawId =
+      (item as any)?.id ??
+      (item as any)?.iddemande ??
+      (item as any)?.idDemande ??
+      (item as any)?.idTypeDemande ??
+      (item as any)?.typeDemandeId;
+    const id = Number(rawId);
+    return Number.isFinite(id) ? id : null;
+  }
+
+  private getTypeDemandeChampId(champ: TypeDemandeChampItem | null | undefined): number | null {
+    const rawId =
+      (champ as any)?.id ??
+      (champ as any)?.idchamp ??
+      (champ as any)?.idChamp;
+    const id = Number(rawId);
+    return Number.isFinite(id) ? id : null;
+  }
+
+  selectTypeDemande(item: TypeDemandeItem): void {
+    this.selectedTypeDemande = item;
+    this.selectedTypeDemandeId = this.getTypeDemandeId(item);
+    const id = this.getTypeDemandeId(item);
+    if (!id) {
+      this.typeDemandeChamps = [];
+      return;
+    }
+    this.isLoadingTypeChamps = true;
+    this.partenaireService.getTypeDemandeChamps(id).pipe(
+      finalize(() => {
+        this.isLoadingTypeChamps = false;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
+      next: (champs) => {
+        this.typeDemandeChamps = (Array.isArray(champs) ? champs : []).map((raw) => {
+          const id = this.getTypeDemandeChampId(raw);
+          return {
+            ...raw,
+            id: id ?? undefined,
+            code: String((raw as any)?.code ?? ''),
+            libelle: String((raw as any)?.libelle ?? ''),
+            typeChamp: String((raw as any)?.typeChamp ?? (raw as any)?.type ?? ''),
+            obligatoire: (raw as any)?.obligatoire ?? (raw as any)?.required ?? (raw as any)?.requis ?? false
+          } as TypeDemandeChampItem;
+        });
+      },
+      error: (err) => {
+        console.error('Erreur lors du chargement des champs', err);
+        this.typeDemandeChamps = [];
+        this.notificationService.show('Erreur lors du chargement des champs du type', 'error', 5000);
+      }
+    });
+  }
+
+  onSelectedTypeDemandeChange(): void {
+    const id = Number(this.selectedTypeDemandeId);
+    if (!Number.isFinite(id)) {
+      this.selectedTypeDemande = null;
+      this.typeDemandeChamps = [];
+      return;
+    }
+    const selected = this.typeDemandes.find((t) => Number(t.id) === id) || null;
+    if (!selected) {
+      this.selectedTypeDemande = null;
+      this.typeDemandeChamps = [];
+      return;
+    }
+    this.selectTypeDemande(selected);
+  }
+
+  createTypeDemande(): void {
+    const code = this.newTypeDemande.code.trim();
+    const libelle = this.newTypeDemande.libelle.trim();
+    if (!code || !libelle) {
+      this.notificationService.show('Code et libellé du type sont obligatoires', 'warning', 3000);
+      return;
+    }
+    this.isSavingTypeDemande = true;
+    this.partenaireService.createTypeDemande({
+      code,
+      libelle,
+      description: this.newTypeDemande.description?.trim() || undefined,
+      actif: this.newTypeDemande.actif
+    }).pipe(finalize(() => {
+      this.isSavingTypeDemande = false;
+      this.cdr.detectChanges();
+    })).subscribe({
+      next: (created) => {
+        this.notificationService.show('Type de demande créé', 'success', 3000);
+        this.newTypeDemande = { code: '', libelle: '', description: '', actif: true };
+        this.loadTypeDemandes();
+        if (created) this.selectedTypeDemande = created;
+      },
+      error: (err) => {
+        this.notificationService.show(err?.error?.message || 'Erreur lors de la création du type', 'error', 5000);
+      }
+    });
+  }
+
+  startEditTypeDemande(item: TypeDemandeItem): void {
+    const id = this.getTypeDemandeId(item);
+    if (!id) return;
+    this.editingTypeDemandeId = id;
+    this.newTypeDemande = {
+      code: String((item as any)?.code ?? '').trim(),
+      libelle: String((item as any)?.libelle ?? '').trim(),
+      description: String((item as any)?.description ?? '').trim(),
+      actif: ((item as any)?.actif ?? (item as any)?.active ?? true) !== false,
+    };
+    this.cdr.detectChanges();
+  }
+
+  cancelEditTypeDemande(): void {
+    this.editingTypeDemandeId = null;
+    this.newTypeDemande = { code: '', libelle: '', description: '', actif: true };
+  }
+
+  saveTypeDemande(): void {
+    if (!this.editingTypeDemandeId) {
+      this.createTypeDemande();
+      return;
+    }
+
+    const code = this.newTypeDemande.code.trim();
+    const libelle = this.newTypeDemande.libelle.trim();
+    if (!code || !libelle) {
+      this.notificationService.show('Code et libellé du type sont obligatoires', 'warning', 3000);
+      return;
+    }
+
+    this.isSavingTypeDemande = true;
+    this.partenaireService.updateTypeDemande(this.editingTypeDemandeId, {
+      code,
+      libelle,
+      description: this.newTypeDemande.description?.trim() || undefined,
+      actif: this.newTypeDemande.actif
+    }).pipe(finalize(() => {
+      this.isSavingTypeDemande = false;
+      this.cdr.detectChanges();
+    })).subscribe({
+      next: () => {
+        this.notificationService.show('Type de demande modifié', 'success', 3000);
+        this.cancelEditTypeDemande();
+        this.loadTypeDemandes();
+      },
+      error: (err) => {
+        this.notificationService.show(err?.error?.message || 'Erreur lors de la modification du type', 'error', 5000);
+      }
+    });
+  }
+
+  deleteTypeDemande(item: TypeDemandeItem): void {
+    const id = this.getTypeDemandeId(item);
+    if (!id) {
+      this.notificationService.show(
+        'Suppression impossible: identifiant du type introuvable dans la réponse API.',
+        'error',
+        5000
+      );
+      return;
+    }
+    if (this.isDeletingTypeDemandeId === id) return;
+    const label = String(item.libelle || item.code || id);
+    if (!confirm(`Supprimer le type de demande "${label}" ?`)) return;
+    this.isDeletingTypeDemandeId = id;
+
+    // Nettoyage UI immédiat pour éviter d'afficher des champs orphelins
+    if (this.getTypeDemandeId(this.selectedTypeDemande) === id) {
+      this.selectedTypeDemande = null;
+      this.selectedTypeDemandeId = null;
+      this.typeDemandeChamps = [];
+    }
+    this.typeDemandes = this.typeDemandes.filter((t) => this.getTypeDemandeId(t) !== id);
+    this.cdr.detectChanges();
+
+    this.partenaireService.getTypeDemandeChamps(id).subscribe({
+      next: (champs) => {
+        const champIds = (Array.isArray(champs) ? champs : [])
+          .map((c) => this.getTypeDemandeChampId(c))
+          .filter((cid): cid is number => typeof cid === 'number' && Number.isFinite(cid));
+
+        const deleteChamps$ = champIds.length > 0
+          ? forkJoin(champIds.map((cid) => this.partenaireService.deleteTypeDemandeChamp(cid)))
+          : of([]);
+
+        deleteChamps$.subscribe({
+          next: () => {
+            this.partenaireService.deleteTypeDemande(id).pipe(
+              finalize(() => {
+                this.isDeletingTypeDemandeId = null;
+                this.cdr.detectChanges();
+              })
+            ).subscribe({
+              next: () => {
+                this.notificationService.show('Type de demande supprimé', 'success', 3000);
+                if (this.getTypeDemandeId(this.selectedTypeDemande) === id) {
+                  this.selectedTypeDemande = null;
+                  this.selectedTypeDemandeId = null;
+                  this.typeDemandeChamps = [];
+                }
+                this.loadTypeDemandes();
+              },
+              error: (err) => {
+                this.notificationService.show(
+                  err?.error?.message || 'Suppression impossible. Vérifiez les dépendances liées au type.',
+                  'error',
+                  6000
+                );
+              }
+            });
+          },
+          error: () => {
+            this.isDeletingTypeDemandeId = null;
+            this.notificationService.show(
+              'Impossible de supprimer les champs liés avant la suppression du type.',
+              'error',
+              6000
+            );
+          }
+        });
+      },
+      error: () => {
+        this.isDeletingTypeDemandeId = null;
+        this.notificationService.show('Erreur lors de la préparation de suppression du type.', 'error', 5000);
+      }
+    });
+  }
+
+  createTypeChamp(): void {
+    const typeId = this.getTypeDemandeId(this.selectedTypeDemande);
+    if (!typeId) {
+      this.notificationService.show('Sélectionnez un type de demande', 'warning', 3000);
+      return;
+    }
+    const code = this.newTypeChamp.code.trim();
+    const libelle = this.newTypeChamp.libelle.trim();
+    if (!code || !libelle) {
+      this.notificationService.show('Code et libellé du champ sont obligatoires', 'warning', 3000);
+      return;
+    }
+    const typeChamp = (this.newTypeChamp.typeChamp || 'TEXT').trim().toUpperCase();
+    if (typeChamp === 'SELECT' && !(this.newTypeChamp.optionsJson || '').trim()) {
+      this.notificationService.show('Options JSON est obligatoire pour le type SELECT', 'warning', 3500);
+      return;
+    }
+    this.isSavingTypeChamp = true;
+    this.partenaireService.createTypeDemandeChamp(typeId, {
+      code,
+      libelle,
+      typeChamp,
+      obligatoire: this.newTypeChamp.obligatoire === true,
+      ordre: Number.isFinite(Number(this.newTypeChamp.ordre)) ? Number(this.newTypeChamp.ordre) : 0,
+      optionsJson: typeChamp === 'SELECT' ? ((this.newTypeChamp.optionsJson || '').trim() || undefined) : undefined,
+      iddemande: typeId
+    }).pipe(finalize(() => {
+      this.isSavingTypeChamp = false;
+      this.cdr.detectChanges();
+    })).subscribe({
+      next: () => {
+        this.notificationService.show('Champ ajouté au type', 'success', 3000);
+        this.newTypeChamp = { code: '', libelle: '', typeChamp: 'TEXT', obligatoire: false, ordre: 0, optionsJson: '' };
+        this.selectTypeDemande(this.selectedTypeDemande!);
+      },
+      error: (err) => {
+        this.notificationService.show(err?.error?.message || 'Erreur lors de l’ajout du champ', 'error', 5000);
+      }
+    });
+  }
+
+  onTypeChampChange(): void {
+    const typeChamp = (this.newTypeChamp.typeChamp || '').trim().toUpperCase();
+    this.newTypeChamp.typeChamp = typeChamp;
+    if (typeChamp !== 'SELECT') {
+      this.newTypeChamp.optionsJson = '';
+    }
+  }
+
+  deleteTypeChamp(champ: TypeDemandeChampItem): void {
+    const id = Number(champ?.id);
+    if (!Number.isFinite(id)) return;
+    const label = String(champ.libelle || champ.code || id);
+    if (!confirm(`Supprimer le champ "${label}" ?`)) return;
+    this.partenaireService.deleteTypeDemandeChamp(id).subscribe({
+      next: () => {
+        this.notificationService.show('Champ supprimé', 'success', 3000);
+        if (this.selectedTypeDemande) {
+          this.selectTypeDemande(this.selectedTypeDemande);
+        }
+      },
+      error: (err) => {
+        this.notificationService.show(err?.error?.message || 'Erreur lors de la suppression du champ', 'error', 5000);
+      }
+    });
   }
 
   /** Statut par défaut : utilisateurs actifs si l'API ne renvoie rien */
@@ -250,7 +586,7 @@ export class Parametre implements OnInit {
 
   loadUsers() {
     this.partenaireService.getAllUsers().pipe(
-      finalize(() => this.onLoadDone())
+      finalize(() => this.cdr.detectChanges())
     ).subscribe({
       next: (users: any) => {
         this.users = users
@@ -284,7 +620,7 @@ export class Parametre implements OnInit {
 
   loadPartenaires() {
     this.partenaireService.getListePartenaires().pipe(
-      finalize(() => this.onLoadDone())
+      finalize(() => this.cdr.detectChanges())
     ).subscribe({
       next: (data) => {
         this.partners = data;

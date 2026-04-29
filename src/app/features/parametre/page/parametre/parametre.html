@@ -47,9 +47,9 @@
         <i class="bi bi-grid-3x3-gap"></i>
         <span>Applications</span>
       </button>
-      <button class="admin-tab" [class.active]="activeTab === 'system'" (click)="activeTab = 'system'" type="button">
+      <button class="admin-tab" [class.active]="activeTab === 'typeConfig'" (click)="activeTab = 'typeConfig'" type="button">
         <i class="bi bi-gear"></i>
-        <span>Configuration</span>
+        <span>Configuration type demande</span>
       </button>
     </nav>
 
@@ -211,28 +211,198 @@
       </div>
     </section>
 
-    <!-- SYSTEM CONFIG TAB -->
-    <section class="admin-panel" *ngIf="activeTab === 'system'">
+    <!-- TYPE DEMANDE CONFIG TAB -->
+    <section class="admin-panel" *ngIf="activeTab === 'typeConfig'">
       <div class="panel-top">
         <div class="panel-heading">
-          <h2 class="panel-title">Configuration système</h2>
-          <p class="panel-subtitle">Paramètres de l'application et intégrations</p>
+          <h2 class="panel-title">Configuration par type de demande</h2>
+          <p class="panel-subtitle">Gestion des types de demande et de leurs champs</p>
         </div>
       </div>
 
-      <div class="system-grid">
-        <article class="system-card" *ngFor="let cfg of systemConfigs" (click)="onSystemConfigClick(cfg)">
-          <div class="system-card-icon">
-            <i [class]="'bi ' + cfg.icon"></i>
-          </div>
-          <div class="system-card-body">
-            <span class="system-card-category" *ngIf="cfg.category">{{ cfg.category }}</span>
-            <h3 class="system-card-title">{{ cfg.title }}</h3>
-            <p class="system-card-desc">{{ cfg.subtitle }}</p>
-          </div>
-          <i class="bi bi-chevron-right system-card-arrow"></i>
-        </article>
+      <div class="panel-top" style="margin-top: 12px;">
+        <div class="panel-heading">
+          <h3 class="panel-title" style="font-size: 1.1rem;">
+            {{ editingTypeDemandeId ? 'Modifier le type' : 'Nouveau type' }}
+          </h3>
+        </div>
       </div>
+      <div class="form-section">
+        <label class="form-label">Code *</label>
+        <input class="form-control" type="text" [(ngModel)]="newTypeDemande.code" placeholder="Ex: EVOLUTION" />
+      </div>
+      <div class="form-section">
+        <label class="form-label">Libellé *</label>
+        <input class="form-control" type="text" [(ngModel)]="newTypeDemande.libelle" placeholder="Ex: Demande d'évolution" />
+      </div>
+      <div class="form-section">
+        <label class="form-label">Description</label>
+        <input class="form-control" type="text" [(ngModel)]="newTypeDemande.description" placeholder="Ex: demande Paramatrable" />
+      </div>
+      <div class="form-section">
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="newTypeDemande.actif" class="checkbox-input">
+          <span class="checkbox-custom"></span>
+          Type actif
+        </label>
+      </div>
+      <div class="modal-footer" style="padding-top: 0;">
+        <button class="btn-primary" type="button" (click)="saveTypeDemande()" [disabled]="isSavingTypeDemande">
+          <i class="bi" [class.bi-check-lg]="editingTypeDemandeId" [class.bi-plus]="!editingTypeDemandeId"></i>
+          {{ editingTypeDemandeId ? 'Enregistrer modification' : 'Ajouter le type' }}
+        </button>
+        <button *ngIf="editingTypeDemandeId" class="btn-secondary" type="button" (click)="cancelEditTypeDemande()" [disabled]="isSavingTypeDemande">
+          Annuler
+        </button>
+      </div>
+
+      <div class="table-container" style="margin-top: 12px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Libellé</th>
+              <th>Actif</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let type of typeDemandes" [class.selected-type-row]="selectedTypeDemandeId === type.id">
+              <td><span class="badge badge-role">{{ type.code || '—' }}</span></td>
+              <td>{{ type.libelle || '—' }}</td>
+              <td>
+                <span class="badge" [class.badge-success]="type.actif !== false && type.active !== false" [class.badge-warning]="type.actif === false || type.active === false">
+                  {{ (type.actif !== false && type.active !== false) ? 'Actif' : 'Inactif' }}
+                </span>
+              </td>
+              <td>
+                <div class="type-actions">
+                <button
+                  class="btn-link icon-action"
+                  type="button"
+                  (click)="selectTypeDemande(type)"
+                  title="Voir les champs"
+                  aria-label="Voir les champs">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <span class="type-actions-separator">|</span>
+                <button
+                  class="btn-link icon-action"
+                  type="button"
+                  (click)="startEditTypeDemande(type)"
+                  title="Modifier le type"
+                  aria-label="Modifier le type">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <span class="type-actions-separator">|</span>
+                <button
+                  class="btn-link danger icon-action"
+                  type="button"
+                  (click)="deleteTypeDemande(type)"
+                  [disabled]="isDeletingTypeDemandeId === type.id"
+                  title="Supprimer le type"
+                  aria-label="Supprimer le type">
+                  <i class="bi" [class.bi-hourglass-split]="isDeletingTypeDemandeId === type.id" [class.bi-trash]="isDeletingTypeDemandeId !== type.id"></i>
+                </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel-top" style="margin-top: 20px;">
+        <div class="panel-heading">
+          <h3 class="panel-title" style="font-size: 1.1rem;">
+            Champs du type : {{ selectedTypeDemande?.libelle || selectedTypeDemande?.code || 'Aucun type sélectionné' }}
+          </h3>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">Type de demande (obligatoire)</label>
+        <select class="form-control" [(ngModel)]="selectedTypeDemandeId" (ngModelChange)="onSelectedTypeDemandeChange()">
+          <option [ngValue]="null">-- Sélectionner un type --</option>
+          <option *ngFor="let type of typeDemandes" [ngValue]="type.id">
+            {{ (type.code || '—') + ' - ' + (type.libelle || '') }}
+          </option>
+        </select>
+      </div>
+
+      <div *ngIf="selectedTypeDemande; else noSelectedType">
+        <div class="form-section">
+          <label class="form-label">Code champ *</label>
+          <input class="form-control" type="text" [(ngModel)]="newTypeChamp.code" placeholder="Ex: IMPACT_METIER" />
+        </div>
+        <div class="form-section">
+          <label class="form-label">Libellé champ *</label>
+          <input class="form-control" type="text" [(ngModel)]="newTypeChamp.libelle" placeholder="Ex: Impact métier" />
+        </div>
+        <div class="form-section">
+          <label class="form-label">Type de donnée</label>
+          <select class="form-control" [(ngModel)]="newTypeChamp.typeChamp" (ngModelChange)="onTypeChampChange()">
+            <option *ngFor="let typeOption of typeChampOptions" [value]="typeOption">{{ typeOption }}</option>
+          </select>
+        </div>
+        <div class="form-section">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="newTypeChamp.obligatoire" class="checkbox-input">
+            <span class="checkbox-custom"></span>
+            Champ obligatoire
+          </label>
+        </div>
+        <div class="form-section">
+          <label class="form-label">Ordre</label>
+          <input class="form-control" type="number" [(ngModel)]="newTypeChamp.ordre" />
+        </div>
+        <div class="form-section" *ngIf="newTypeChamp.typeChamp === 'SELECT'">
+          <label class="form-label">Options JSON *</label>
+          <input class="form-control" type="text" [(ngModel)]="newTypeChamp.optionsJson" placeholder='Ex: {"options":["A","B","C"]}' />
+        </div>
+        <div class="modal-footer" style="padding-top: 0;">
+          <button class="btn-primary" type="button" (click)="createTypeChamp()" [disabled]="isSavingTypeChamp || !selectedTypeDemande">
+            <i class="bi bi-plus"></i> Ajouter le champ
+          </button>
+        </div>
+
+        <div class="table-container" style="margin-top: 12px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Libellé</th>
+                <th>Type</th>
+                <th>Obligatoire</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let champ of typeDemandeChamps">
+                <td>{{ champ.code || '—' }}</td>
+                <td>{{ champ.libelle || '—' }}</td>
+                <td>{{ champ.typeChamp || champ.type || '—' }}</td>
+                <td>{{ champ.obligatoire === true || champ.required === true || champ.requis === true ? 'Oui' : 'Non' }}</td>
+                <td>
+                  <button class="btn-link" type="button" (click)="deleteTypeChamp(champ)">Supprimer</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="empty-state" *ngIf="!isLoadingTypeChamps && typeDemandeChamps.length === 0">
+            <i class="bi bi-ui-checks"></i>
+            <p>Aucun champ configuré pour ce type</p>
+          </div>
+          <div class="empty-state" *ngIf="isLoadingTypeChamps">
+            <p>Chargement des champs...</p>
+          </div>
+        </div>
+      </div>
+      <ng-template #noSelectedType>
+        <div class="empty-state">
+          <i class="bi bi-list-check"></i>
+          <p>Sélectionnez un type de demande pour gérer ses champs</p>
+        </div>
+      </ng-template>
     </section>
   </div>
 </div>
