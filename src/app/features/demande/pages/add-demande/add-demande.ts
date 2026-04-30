@@ -219,6 +219,25 @@ export class AddDemande implements OnInit {
       this.demandeForm.addControl(controlName, this.fb.control('', validators));
     });
   }
+
+  private notifyAsync(message: string, type: 'error' | 'warning' | 'info' | 'success', duration = 4000): void {
+    setTimeout(() => this.notificationService.show(message, type, duration), 0);
+  }
+
+  private buildDynamicFieldsPayload(): Array<{ idChampTypeDemande: number; valeur: string }> {
+    const out: Array<{ idChampTypeDemande: number; valeur: string }> = [];
+    for (const champ of this.selectedTypeDemandeChamps) {
+      const idChampTypeDemande = Number(champ.id);
+      if (!Number.isFinite(idChampTypeDemande) || idChampTypeDemande <= 0) continue;
+      const value = this.demandeForm.get(this.dynamicControlName(champ))?.value;
+      if (value === undefined || value === null || String(value).trim() === '') continue;
+      out.push({
+        idChampTypeDemande,
+        valeur: String(value).trim()
+      });
+    }
+    return out;
+  }
   onFileSelected($event: Event) {
     const input = $event.target as HTMLInputElement;
     const files = input.files && input.files.length > 0 ? Array.from(input.files) : [];
@@ -295,7 +314,7 @@ export class AddDemande implements OnInit {
     if (!allowedTypes.has(typedemande)) {
       this.isSubmitting = false;
       this.demandeForm.enable();
-      this.notificationService.show(
+      this.notifyAsync(
         'Type de demande invalide. Valeurs autorisées : EVOLUTION ou PARAMETRABLE.',
         'error',
         5000
@@ -310,7 +329,7 @@ export class AddDemande implements OnInit {
       return value == null || String(value).trim() === '';
     });
     if (missingRequiredDynamic) {
-      this.notificationService.show('Veuillez renseigner les champs obligatoires liés au type de demande.', 'warning', 4000);
+      this.notifyAsync('Veuillez renseigner les champs obligatoires liés au type de demande.', 'warning', 4000);
       this.demandeForm.markAllAsTouched();
       this.isSubmitting = false;
       this.demandeForm.enable();
@@ -325,16 +344,17 @@ export class AddDemande implements OnInit {
     if (!Number.isFinite(typedemandeId)) {
       this.isSubmitting = false;
       this.demandeForm.enable();
-      this.notificationService.show('Type de demande invalide: identifiant introuvable.', 'error', 5000);
+      this.notifyAsync('Type de demande invalide: identifiant introuvable.', 'error', 5000);
       this.cdr.detectChanges();
       return;
     }
+    const dynamicFields = this.buildDynamicFieldsPayload();
 
     const payload = {
       objet,
       description,
-      departement: (raw.codeDepartement ?? '').toString().trim(),
-      typedemande: typedemande,
+      typedemande,
+      champs: dynamicFields,
     };
 
     this.demandeService
@@ -376,9 +396,7 @@ export class AddDemande implements OnInit {
         },
         error: (err) => {
           const msg = err?.error?.message ?? err?.error?.detail ?? err?.message ?? 'Erreur lors de la création de la demande.';
-          setTimeout(() => {
-            this.notificationService.show(String(msg), 'error', 5000);
-          }, 0);
+          this.notifyAsync(String(msg), 'error', 5000);
         },
       });
   }

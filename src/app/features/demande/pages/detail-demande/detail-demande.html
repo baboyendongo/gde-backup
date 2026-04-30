@@ -59,6 +59,18 @@
         </div>
       </section>
 
+      <section class="detail-section" *ngIf="getDynamicChampsDisplay().length">
+        <h2 class="section-title"><i class="bi bi-list-check"></i> Champs saisis</h2>
+        <div class="description-block">
+          <dl class="info-list">
+            <div class="info-row" *ngFor="let champ of getDynamicChampsDisplay()">
+              <dt>{{ champ.libelle }}</dt>
+              <dd>{{ champ.valeur }}</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
       <!-- Documents (si présents) -->
       <section class="detail-section" *ngIf="getDocumentsList().length">
         <h2 class="section-title"><i class="bi bi-paperclip"></i> Documents ({{ getDocumentsList().length }})</h2>

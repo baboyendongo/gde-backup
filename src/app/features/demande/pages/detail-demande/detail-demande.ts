@@ -47,6 +47,10 @@ export class DetailDemande implements OnInit {
     private cdr: ChangeDetectorRef // Injecter ChangeDetectorRef
   ) { }
 
+  private notifyAsync(message: string, type: 'error' | 'warning' | 'info' | 'success', duration = 3000): void {
+    setTimeout(() => this.notificationService.show(message, type, duration), 0);
+  }
+
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -596,6 +600,60 @@ export class DetailDemande implements OnInit {
     return '#';
   }
 
+  getDynamicChampsDisplay(): Array<{ libelle: string; valeur: string }> {
+    if (!this.demande || typeof this.demande !== 'object') {
+      return [];
+    }
+    const d = this.demande as Record<string, unknown>;
+    const rawList =
+      d['champs'] ??
+      d['champsDynamiques'] ??
+      d['champValeurs'] ??
+      d['champvaleurs'] ??
+      d['valeursChamps'] ??
+      [];
+    if (!Array.isArray(rawList)) {
+      return [];
+    }
+
+    return rawList
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const o = item as Record<string, unknown>;
+        const nested =
+          (o['champTypeDemande'] as Record<string, unknown> | undefined) ??
+          (o['champ'] as Record<string, unknown> | undefined) ??
+          (o['typeChampDemande'] as Record<string, unknown> | undefined);
+
+        const libelle =
+          String(
+            o['libelle'] ??
+            o['label'] ??
+            nested?.['libelle'] ??
+            nested?.['label'] ??
+            o['code'] ??
+            nested?.['code'] ??
+            ''
+          ).trim();
+
+        const valeur =
+          String(
+            o['valeur'] ??
+            o['value'] ??
+            o['contenu'] ??
+            o['texte'] ??
+            ''
+          ).trim();
+
+        if (!libelle && !valeur) return null;
+        return {
+          libelle: libelle || 'Champ',
+          valeur: valeur || '—'
+        };
+      })
+      .filter((x): x is { libelle: string; valeur: string } => !!x);
+  }
+
   redirectToPartner(): void {
     if (!this.demande) return;
     if (confirm('Voulez-vous rediriger cette demande vers un partenaire ?')) {
@@ -638,7 +696,7 @@ export class DetailDemande implements OnInit {
 
   submitValidation(): void {
     if (!this.validationCommentaire?.trim()) {
-      this.notificationService.show('Le commentaire est obligatoire', 'error', 3000);
+      this.notifyAsync('Le commentaire est obligatoire', 'error', 3000);
       return;
     }
 
@@ -689,7 +747,7 @@ export class DetailDemande implements OnInit {
       // Fermer immédiatement le modal dès que l'action est effectuée avec succès.
       this.closeValidationModal();
       this.cdr.detectChanges();
-      this.notificationService.show(actionMessage, 'success', 3000);
+      this.notifyAsync(actionMessage, 'success', 3000);
 
       const demandeId = Number(this.route.snapshot.paramMap.get('id') || id);
       this.demandeService.getDemande(demandeId).subscribe({
@@ -708,7 +766,7 @@ export class DetailDemande implements OnInit {
     // vers A_CORRIGER_PAR_DEMANDEUR (action RETOURNER) est autorisée.
     if (this.isRetournerSiStatus() && !isRetour) {
       this.isValidating = false;
-      this.notificationService.show(
+      this.notifyAsync(
         'En statut RETOURNER_SI, seule l’action vers A_CORRIGER_PAR_DEMANDEUR est autorisée.',
         'warning',
         4500
@@ -718,7 +776,7 @@ export class DetailDemande implements OnInit {
 
     if (isRetour && !this.canReturnDemandeBySIAdmin()) {
       this.isValidating = false;
-      this.notificationService.show('Le retour est réservé aux niveaux SI/Admin selon le statut actuel.', 'warning', 4000);
+      this.notifyAsync('Le retour est réservé aux niveaux SI/Admin selon le statut actuel.', 'warning', 4000);
       return;
     }
 
@@ -741,7 +799,7 @@ export class DetailDemande implements OnInit {
                   'Erreur lors du retour de la demande.';
                 setTimeout(() => {
                   this.isValidating = false;
-                  this.notificationService.show(String(errorMsg), 'error', 5000);
+                  this.notifyAsync(String(errorMsg), 'error', 5000);
                 }, 0);
               }
             });
@@ -755,7 +813,7 @@ export class DetailDemande implements OnInit {
               'Erreur lors de la validation préalable au retour.';
             setTimeout(() => {
               this.isValidating = false;
-              this.notificationService.show(String(errorMsg), 'error', 5000);
+              this.notifyAsync(String(errorMsg), 'error', 5000);
             }, 0);
           }
         });
@@ -805,7 +863,7 @@ export class DetailDemande implements OnInit {
         // Décaler pour éviter ExpressionChangedAfterItHasBeenCheckedError
         setTimeout(() => {
           this.isValidating = false;
-          this.notificationService.show(String(errorMsg), 'error', 5000);
+          this.notifyAsync(String(errorMsg), 'error', 5000);
         }, 0);
       }
     });
@@ -1277,7 +1335,7 @@ canEscalateToPartenaire(): boolean {
     }
     const availableCodes = this.getAvailableResolueCodes();
     if (!availableCodes.length) {
-      this.notificationService.show('Aucune transition de statut final disponible.', 'info', 3000);
+      this.notifyAsync('Aucune transition de statut final disponible.', 'info', 3000);
       return;
     }
 
@@ -1297,7 +1355,7 @@ canEscalateToPartenaire(): boolean {
       return;
     }
     if (!this.resolueCode?.trim()) {
-      this.notificationService.show('Veuillez choisir un statut (LIVRE, TEST ou PREPROD).', 'warning', 3500);
+      this.notifyAsync('Veuillez choisir un statut (LIVRE, TEST ou PREPROD).', 'warning', 3500);
       return;
     }
     this.isSubmittingResolue = true;
@@ -1307,7 +1365,7 @@ canEscalateToPartenaire(): boolean {
 
     if (!allowedCodes.has(code)) {
       this.isSubmittingResolue = false;
-      this.notificationService.show('Transition de statut final non autorisée.', 'warning', 3500);
+      this.notifyAsync('Transition de statut final non autorisée.', 'warning', 3500);
       return;
     }
 
@@ -1318,7 +1376,7 @@ canEscalateToPartenaire(): boolean {
         // Fermer immédiatement le popup quand l'action est effective.
         this.closeResolueModal();
         this.cdr.detectChanges();
-        this.notificationService.show(String(msg), 'success', 4000);
+        this.notifyAsync(String(msg), 'success', 4000);
 
         // Recharger les données pour mettre à jour le statut / historique
         this.demandeService.getDemande(id).subscribe({
@@ -1355,7 +1413,7 @@ canEscalateToPartenaire(): boolean {
           backendMessage ||
           err?.message ||
           'Erreur lors du marquage en résolue.';
-        this.notificationService.show(String(errorMsg), 'error', 5000);
+        this.notifyAsync(String(errorMsg), 'error', 5000);
       }
     });
   }

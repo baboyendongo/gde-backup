@@ -96,6 +96,7 @@ export class Parametre implements OnInit {
   isSavingTypeChamp = false;
   isDeletingTypeDemandeId: number | null = null;
   editingTypeDemandeId: number | null = null;
+  editingTypeChampId: number | null = null;
   newTypeDemande = { code: '', libelle: '', description: '', actif: true };
   newTypeChamp = { code: '', libelle: '', typeChamp: 'TEXT', obligatoire: false, ordre: 0, optionsJson: '' };
   readonly typeChampOptions = ['TEXT', 'NUMBER', 'DATE', 'SELECT', 'TEXTAREA'];
@@ -477,7 +478,7 @@ export class Parametre implements OnInit {
     });
   }
 
-  createTypeChamp(): void {
+  saveTypeChamp(): void {
     const typeId = this.getTypeDemandeId(this.selectedTypeDemande);
     if (!typeId) {
       this.notificationService.show('Sélectionnez un type de demande', 'warning', 3000);
@@ -495,7 +496,7 @@ export class Parametre implements OnInit {
       return;
     }
     this.isSavingTypeChamp = true;
-    this.partenaireService.createTypeDemandeChamp(typeId, {
+    const payload = {
       code,
       libelle,
       typeChamp,
@@ -503,17 +504,31 @@ export class Parametre implements OnInit {
       ordre: Number.isFinite(Number(this.newTypeChamp.ordre)) ? Number(this.newTypeChamp.ordre) : 0,
       optionsJson: typeChamp === 'SELECT' ? ((this.newTypeChamp.optionsJson || '').trim() || undefined) : undefined,
       iddemande: typeId
-    }).pipe(finalize(() => {
+    };
+
+    const request$ = this.editingTypeChampId
+      ? this.partenaireService.updateTypeDemandeChamp(this.editingTypeChampId, payload)
+      : this.partenaireService.createTypeDemandeChamp(typeId, payload);
+
+    request$.pipe(finalize(() => {
       this.isSavingTypeChamp = false;
       this.cdr.detectChanges();
     })).subscribe({
       next: () => {
-        this.notificationService.show('Champ ajouté au type', 'success', 3000);
-        this.newTypeChamp = { code: '', libelle: '', typeChamp: 'TEXT', obligatoire: false, ordre: 0, optionsJson: '' };
+        this.notificationService.show(
+          this.editingTypeChampId ? 'Champ modifié avec succès' : 'Champ ajouté au type',
+          'success',
+          3000
+        );
+        this.cancelEditTypeChamp();
         this.selectTypeDemande(this.selectedTypeDemande!);
       },
       error: (err) => {
-        this.notificationService.show(err?.error?.message || 'Erreur lors de l’ajout du champ', 'error', 5000);
+        this.notificationService.show(
+          err?.error?.message || (this.editingTypeChampId ? 'Erreur lors de la modification du champ' : 'Erreur lors de l’ajout du champ'),
+          'error',
+          5000
+        );
       }
     });
   }
@@ -542,6 +557,27 @@ export class Parametre implements OnInit {
         this.notificationService.show(err?.error?.message || 'Erreur lors de la suppression du champ', 'error', 5000);
       }
     });
+  }
+
+  startEditTypeChamp(champ: TypeDemandeChampItem): void {
+    const id = this.getTypeDemandeChampId(champ);
+    if (!id) return;
+    this.editingTypeChampId = id;
+    this.newTypeChamp = {
+      code: String(champ.code ?? '').trim(),
+      libelle: String(champ.libelle ?? '').trim(),
+      typeChamp: String(champ.typeChamp ?? champ.type ?? 'TEXT').trim().toUpperCase(),
+      obligatoire: (champ.obligatoire ?? champ.required ?? champ.requis ?? false) === true,
+      ordre: Number((champ as any)?.ordre ?? 0) || 0,
+      optionsJson: String((champ as any)?.optionsJson ?? '')
+    };
+    this.onTypeChampChange();
+    this.cdr.detectChanges();
+  }
+
+  cancelEditTypeChamp(): void {
+    this.editingTypeChampId = null;
+    this.newTypeChamp = { code: '', libelle: '', typeChamp: 'TEXT', obligatoire: false, ordre: 0, optionsJson: '' };
   }
 
   /** Statut par défaut : utilisateurs actifs si l'API ne renvoie rien */

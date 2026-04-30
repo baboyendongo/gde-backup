@@ -363,13 +363,23 @@ export class DemandeService {
 
   /**
    * Soumettre explicitement une demande après création.
-   * POST /api/evolution/demande/soumettre/{demandeId}
+   * Selon les versions backend:
+   * - POST /api/evolution/demande/soumettre/{demandeId}
+   * - POST /api/evolution/demande/{demandeId}/soumettre
    */
   soumettreDemande(demandeId: number): Observable<any> {
     return this.http.post(
       `${this.apiUrl}/demande/soumettre/${demandeId}`,
       {},
       { headers: { 'Content-Type': 'application/json' } }
+    ).pipe(
+      catchError(() =>
+        this.http.post(
+          `${this.apiUrl}/demande/${demandeId}/soumettre`,
+          {},
+          { headers: { 'Content-Type': 'application/json' } }
+        )
+      )
     );
   }
 
@@ -382,7 +392,12 @@ export class DemandeService {
 
   // Créer une nouvelle demande
   addDemande(
-    payload: { objet: string; description: string; departement: string; typedemande: string },
+    payload: {
+      objet: string;
+      description: string;
+      typedemande: string;
+      champs?: Array<{ idChampTypeDemande: number; valeur: string }>;
+    },
     codenp: string,
     codeapp: string,
     typedemandeId?: number
@@ -396,16 +411,13 @@ export class DemandeService {
       ? `${this.apiUrl}/demande/create-demande?${query}`
       : `${this.apiUrl}/demande/create-demande`;
 
-    return this.http.post<Demande>(
-      url,
-      {
-        objet: payload.objet,
-        description: payload.description,
-        departement: payload.departement,
-        typedemande: payload.typedemande,
-      },
-      { headers: { 'Content-Type': 'application/json' } }
-    );
+    const body = {
+      objet: payload.objet,
+      description: payload.description,
+      champs: Array.isArray(payload.champs) ? payload.champs : []
+    };
+
+    return this.http.post<Demande>(url, body, { headers: { 'Content-Type': 'application/json' } });
   }
   
   // listerDemandeByCodeapp(codeapp: string): Observable<Demande[]> {

@@ -360,8 +360,12 @@
           <input class="form-control" type="text" [(ngModel)]="newTypeChamp.optionsJson" placeholder='Ex: {"options":["A","B","C"]}' />
         </div>
         <div class="modal-footer" style="padding-top: 0;">
-          <button class="btn-primary" type="button" (click)="createTypeChamp()" [disabled]="isSavingTypeChamp || !selectedTypeDemande">
-            <i class="bi bi-plus"></i> Ajouter le champ
+          <button class="btn-primary" type="button" (click)="saveTypeChamp()" [disabled]="isSavingTypeChamp || !selectedTypeDemande">
+            <i class="bi" [class.bi-check-lg]="editingTypeChampId" [class.bi-plus]="!editingTypeChampId"></i>
+            {{ editingTypeChampId ? 'Enregistrer modification' : 'Ajouter le champ' }}
+          </button>
+          <button *ngIf="editingTypeChampId" class="btn-secondary" type="button" (click)="cancelEditTypeChamp()" [disabled]="isSavingTypeChamp">
+            Annuler
           </button>
         </div>
 
@@ -383,7 +387,25 @@
                 <td>{{ champ.typeChamp || champ.type || '—' }}</td>
                 <td>{{ champ.obligatoire === true || champ.required === true || champ.requis === true ? 'Oui' : 'Non' }}</td>
                 <td>
-                  <button class="btn-link" type="button" (click)="deleteTypeChamp(champ)">Supprimer</button>
+                  <div class="type-actions">
+                    <button
+                      class="btn-link icon-action"
+                      type="button"
+                      (click)="startEditTypeChamp(champ)"
+                      title="Modifier le champ"
+                      aria-label="Modifier le champ">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <span class="type-actions-separator">|</span>
+                    <button
+                      class="btn-link danger icon-action"
+                      type="button"
+                      (click)="deleteTypeChamp(champ)"
+                      title="Supprimer le champ"
+                      aria-label="Supprimer le champ">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
