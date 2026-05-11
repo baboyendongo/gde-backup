@@ -426,6 +426,14 @@
       <option value="">Sélectionner un statut</option>
       <option *ngFor="let code of getAvailableResolueCodes()" [value]="code">{{ code }}</option>
     </select>
+    <label class="modal-label" for="resolue-commentaire">Commentaire *</label>
+    <textarea
+      id="resolue-commentaire"
+      class="modal-textarea"
+      rows="3"
+      [(ngModel)]="resolueCommentaire"
+      placeholder="Saisir un commentaire..."
+      [class.error]="!resolueCommentaire.trim() && isSubmittingResolue"></textarea>
     <p class="modal-help-text" *ngIf="!getAvailableResolueCodes().length">
       Aucun changement de statut final n'est disponible.
     </p>
@@ -438,7 +446,7 @@
         type="button"
         class="btn btn-confirm btn-success"
         (click)="submitResolue()"
-        [disabled]="isSubmittingResolue || !resolueCode.trim()">
+        [disabled]="isSubmittingResolue || !resolueCode.trim() || !resolueCommentaire.trim()">
         <span *ngIf="!isSubmittingResolue"><i class="bi bi-check"></i> Appliquer</span>
         <span *ngIf="isSubmittingResolue"><i class="bi bi-arrow-repeat spin"></i> En cours...</span>
       </button>

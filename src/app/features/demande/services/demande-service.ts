@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, of, throwError, forkJoin } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
@@ -457,54 +457,34 @@ export class DemandeService {
   }
 
   /**
-   * Changer le statut final d'une demande (ex: LIVRE, TEST, PREPROD).
+   * Changer le statut final d'une demande.
    * POST /api/evolution/demande/demande-resolue
-   * Body : { id: number, code: string }
+   * Body : { id: number, idStatutFinal: number, commentaire: string }
    */
-  marquerResolue(id: number, code: string): Observable<any> {
-    const demandeId = Number(id);
-    const statutCode = (code ?? '').trim().toUpperCase();
-    const url = `${this.apiUrl}/demande/demande-resolue`;
-
-    const postResolue = (payload: Record<string, unknown>) =>
-      this.http.post(url, payload, {
+  marquerResolue(id: number, idStatutFinal: number, commentaire: string): Observable<any> {
+    const payload = {
+      id: Number(id),
+      idStatutFinal: Number(idStatutFinal),
+      commentaire: (commentaire ?? '').trim()
+    };
+    return this.http.post(
+      `${this.apiUrl}/demande/demande-resolue`,
+      payload,
+      {
         headers: { 'Content-Type': 'application/json' },
         observe: 'response',
         responseType: 'text'
-      }).pipe(map((res) => this.parseTextResponse(res.body)));
+      }
+    ).pipe(map((res) => this.parseTextResponse(res.body)));
+  }
 
-    const postResolueWithQuery = (query: Record<string, string>) =>
-      this.http.post(url, null, {
-        params: new HttpParams({ fromObject: query }),
-        observe: 'response',
-        responseType: 'text'
-      }).pipe(map((res) => this.parseTextResponse(res.body)));
-
-    // Certains backends exposent des contrats différents pour cette route.
-    // On tente plusieurs payloads avant d'échouer définitivement.
-    return postResolue({ id: demandeId, code: statutCode }).pipe(
-      catchError(() =>
-        postResolue({ demandeId, statutFinal: statutCode }).pipe(
-          catchError(() =>
-            postResolue({ demandeId, code: statutCode }).pipe(
-              catchError(() =>
-                postResolue({ idDemande: demandeId, codeStatutFinal: statutCode }).pipe(
-                  catchError(() =>
-                    postResolueWithQuery({ id: String(demandeId), code: statutCode }).pipe(
-                      catchError(() =>
-                        postResolueWithQuery({
-                          demandeId: String(demandeId),
-                          statutFinal: statutCode
-                        })
-                      )
-                    )
-                  )
-                )
-              )
-            )
-          )
-        )
-      )
+  /**
+   * Récupère les statuts finaux paramétrés.
+   * GET /api/evolution/parametre/liste-statut-final
+   */
+  getListeStatutFinal(): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/parametre/liste-statut-final`
     );
   }
 
