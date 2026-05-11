@@ -18,6 +18,86 @@
     <div class="card-body-custom">
       <form [formGroup]="demandeForm" (ngSubmit)="onSubmit()">
         <section class="form-section">
+          <h2 class="form-section-title"><i class="bi bi-list-check"></i> Type de demande</h2>
+          <div class="form-group">
+            <label for="typedemande">Type de demande <span class="required">*</span></label>
+            <select id="typedemande" class="form-select-custom" formControlName="typedemande">
+              <option value="" disabled>Sélectionner un type</option>
+              <option *ngFor="let t of typeDemandes" [value]="t.code" [disabled]="!t.actif">
+                {{ t.libelle }} ({{ t.code }})
+              </option>
+            </select>
+            <span class="form-hint" *ngIf="isLoadingTypeDemandes">Chargement des types...</span>
+            <p class="invalid-feedback" *ngIf="demandeForm.controls['typedemande'].touched && demandeForm.controls['typedemande'].invalid">
+              Le type de demande est obligatoire.
+            </p>
+          </div>
+
+          <div class="form-group" *ngIf="demandeForm.controls['typedemande'].value">
+            <label>Champs configurés pour ce type</label>
+            <div class="info-box" *ngIf="isLoadingTypeChamps" style="margin-top: 8px;">
+              <i class="bi bi-arrow-repeat spin"></i>
+              <p>Chargement des champs du type...</p>
+            </div>
+            <div *ngIf="!isLoadingTypeChamps && selectedTypeDemandeChamps.length > 0" style="margin-top: 8px;">
+              <div class="form-group" *ngFor="let champ of selectedTypeDemandeChamps">
+                <label>
+                  {{ champ.libelle || champ.code || 'Champ' }}
+                  <span class="required" *ngIf="champ.obligatoire">*</span>
+                </label>
+
+                <input
+                  *ngIf="champ.typeChamp === 'TEXT' || !champ.typeChamp"
+                  type="text"
+                  class="form-control-custom"
+                  [placeholder]="champ.code"
+                  [formControlName]="dynamicControlName(champ)"
+                />
+
+                <input
+                  *ngIf="champ.typeChamp === 'NUMBER'"
+                  type="number"
+                  class="form-control-custom"
+                  [placeholder]="champ.code"
+                  [formControlName]="dynamicControlName(champ)"
+                />
+
+                <input
+                  *ngIf="champ.typeChamp === 'DATE'"
+                  type="date"
+                  class="form-control-custom"
+                  [formControlName]="dynamicControlName(champ)"
+                />
+
+                <textarea
+                  *ngIf="champ.typeChamp === 'TEXTAREA'"
+                  class="form-control-custom"
+                  rows="3"
+                  [placeholder]="champ.code"
+                  [formControlName]="dynamicControlName(champ)"
+                ></textarea>
+
+                <select
+                  *ngIf="champ.typeChamp === 'SELECT'"
+                  class="form-select-custom"
+                  [formControlName]="dynamicControlName(champ)"
+                >
+                  <option value="" disabled>Sélectionner</option>
+                  <option *ngFor="let opt of champ.options" [value]="opt">{{ opt }}</option>
+                </select>
+
+                <p class="invalid-feedback" *ngIf="champ.obligatoire && demandeForm.get(dynamicControlName(champ))?.touched && demandeForm.get(dynamicControlName(champ))?.invalid">
+                  Ce champ est obligatoire.
+                </p>
+              </div>
+            </div>
+            <span class="form-hint" *ngIf="!isLoadingTypeChamps && selectedTypeDemandeChamps.length === 0">
+              Aucun champ additionnel configuré pour ce type.
+            </span>
+          </div>
+        </section>
+
+        <section class="form-section">
           <h2 class="form-section-title"><i class="bi bi-pencil-square"></i> Contenu</h2>
           <div class="form-group">
             <label for="objet">Titre de la demande <span class="required">*</span></label>
@@ -62,30 +142,20 @@
             </div>
             <div class="form-group form-half">
               <label for="codeDepartement">Département <span class="required">*</span></label>
-              <input
+              <select
                 id="codeDepartement"
-                type="text"
-                class="form-control-custom"
-                placeholder="Ex. : Département SI"
+                class="form-select-custom"
                 formControlName="codeDepartement"
-              />
+              >
+                <option value="" disabled>Sélectionner un département</option>
+                <option *ngFor="let dep of departementOptions" [value]="dep">{{ dep }}</option>
+              </select>
               <p class="invalid-feedback" *ngIf="demandeForm.controls['codeDepartement'].touched && demandeForm.controls['codeDepartement'].invalid">
                 Le département est obligatoire.
               </p>
             </div>
           </div>
           <div class="form-row">
-            <div class="form-group form-half">
-              <label for="typedemande">Type de demande <span class="required">*</span></label>
-              <select id="typedemande" class="form-select-custom" formControlName="typedemande">
-                <option value="" disabled>Sélectionner un type</option>
-                <option *ngFor="let t of demandeTypeOptions" [value]="t.value">{{ t.label }}</option>
-              </select>
-              <span class="form-hint">Configuration ou réglage des applications existantes</span>
-              <p class="invalid-feedback" *ngIf="demandeForm.controls['typedemande'].touched && demandeForm.controls['typedemande'].invalid">
-                Le type de demande est obligatoire.
-              </p>
-            </div>
             <div class="form-group form-half">
               <label for="codenp">Priorité <span class="required">*</span></label>
               <select id="codenp" class="form-select-custom" formControlName="codenp">
@@ -96,6 +166,7 @@
                 La priorité est obligatoire.
               </p>
             </div>
+            <div class="form-group form-half"></div>
           </div>
         </section>
 

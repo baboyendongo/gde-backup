@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { map, Observable, timeout, catchError, of } from 'rxjs';
+import { map, Observable, timeout, catchError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { Partenaire, CreatePartenaireRequest } from '../models/partenaire';
 import { User, UserStatus } from '../models/users';

@@ -26,6 +26,13 @@ export class AddDemande implements OnInit {
   selectedFiles: File[] = [];
   isDragOver = false;
   readonly demandeTypeOptions = DEMANDE_TYPE_OPTIONS;
+  readonly departementOptions = ['SI', 'RH', 'COM'];
+  typeDemandes: Array<{ id: number; code: string; libelle: string; actif: boolean }> = [];
+  selectedTypeDemandeChamps: Array<{ id: number; code: string; libelle: string; typeChamp: string; obligatoire: boolean; options: string[] }> = [];
+  isLoadingTypeDemandes = false;
+  isLoadingTypeChamps = false;
+  private typeChampsCache = new Map<number, Array<{ id: number; code: string; libelle: string; typeChamp: string; obligatoire: boolean; options: string[] }>>();
+  private currentLoadedTypeId: number | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -47,6 +54,11 @@ export class AddDemande implements OnInit {
     });
     this.listeApps();
     this.chargerNiveauPriorite();
+    this.loadTypeDemandes();
+
+    this.demandeForm.get('typedemande')?.valueChanges.subscribe((code) => {
+      this.onTypeDemandeSelected((code ?? '').toString().trim());
+    });
   }
    chargerNiveauPriorite() {
     this.demandeService.listeNiveauPriorite().subscribe({
@@ -71,6 +83,161 @@ export class AddDemande implements OnInit {
         }
       }); 
     }
+
+  private getTypeDemandeId(item: any): number | null {
+    const rawId = item?.id ?? item?.iddemande ?? item?.idDemande ?? item?.idTypeDemande ?? item?.typeDemandeId;
+    const id = Number(rawId);
+    return Number.isFinite(id) ? id : null;
+  }
+
+  private getTypeDemandeCode(item: any): string {
+    return String(item?.code ?? item?.typedemande ?? item?.typeDemande ?? '').trim();
+  }
+
+  loadTypeDemandes(): void {
+    this.isLoadingTypeDemandes = true;
+    this.demandeService.getTypeDemandes().pipe(
+      finalize(() => {
+        this.isLoadingTypeDemandes = false;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
+      next: (items) => {
+        this.typeDemandes = (Array.isArray(items) ? items : [])
+          .map((raw) => {
+            const id = this.getTypeDemandeId(raw);
+            const code = this.getTypeDemandeCode(raw);
+            if (!id || !code) return null;
+            return {
+              id,
+              code,
+              libelle: String(raw?.libelle ?? raw?.label ?? code).trim(),
+              actif: (raw?.actif ?? raw?.active ?? true) !== false
+            };
+          })
+          .filter((x): x is { id: number; code: string; libelle: string; actif: boolean } => !!x);
+      },
+      error: () => {
+        this.typeDemandes = this.demandeTypeOptions.map((opt, idx) => ({
+          id: idx + 1,
+          code: opt.value,
+          libelle: opt.label,
+          actif: true
+        }));
+      }
+    });
+  }
+
+  onTypeDemandeSelected(typeCode: string): void {
+    const previousTypeId = this.currentLoadedTypeId;
+    if (!typeCode) return;
+    const selected = this.typeDemandes.find((t) => t.code === typeCode);
+    if (!selected?.id) return;
+    const selectedTypeId = selected.id;
+
+    // Ne rien recharger si le même type est déjà chargé.
+    if (previousTypeId === selectedTypeId && this.selectedTypeDemandeChamps.length > 0) {
+      return;
+    }
+
+    this.clearDynamicTypeControls();
+    this.selectedTypeDemandeChamps = [];
+
+    // Utiliser le cache local pour éviter les appels API répétitifs.
+    const cached = this.typeChampsCache.get(selectedTypeId);
+    if (cached) {
+      this.selectedTypeDemandeChamps = cached;
+      this.addDynamicTypeControls(this.selectedTypeDemandeChamps);
+      this.currentLoadedTypeId = selectedTypeId;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.isLoadingTypeChamps = true;
+    this.demandeService.getTypeDemandeChamps(selectedTypeId).pipe(
+      finalize(() => {
+        this.isLoadingTypeChamps = false;
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
+      next: (champs) => {
+        this.selectedTypeDemandeChamps = (Array.isArray(champs) ? champs : []).map((c) => ({
+          id: Number(c?.id ?? c?.idchamp ?? c?.idChamp ?? 0),
+          code: String(c?.code ?? '').trim(),
+          libelle: String(c?.libelle ?? c?.label ?? '').trim(),
+          typeChamp: String(c?.typeChamp ?? c?.type ?? '').trim().toUpperCase(),
+          obligatoire: (c?.obligatoire ?? c?.required ?? c?.requis ?? false) === true,
+          options: this.extractSelectOptions(c?.optionsJson),
+        }));
+        this.typeChampsCache.set(selectedTypeId, this.selectedTypeDemandeChamps);
+        this.currentLoadedTypeId = selectedTypeId;
+        this.addDynamicTypeControls(this.selectedTypeDemandeChamps);
+      },
+      error: () => {
+        this.selectedTypeDemandeChamps = [];
+        this.currentLoadedTypeId = null;
+      }
+    });
+  }
+
+  private extractSelectOptions(optionsJson: unknown): string[] {
+    const raw = String(optionsJson ?? '').trim();
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map((v) => String(v).trim()).filter((v) => v.length > 0);
+      }
+      if (parsed && Array.isArray((parsed as any).options)) {
+        return (parsed as any).options
+          .map((v: unknown) => String(v).trim())
+          .filter((v: string) => v.length > 0);
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  dynamicControlName(champ: { id: number; code: string }): string {
+    const base = (champ.code || `champ_${champ.id}`).replace(/[^a-zA-Z0-9_]/g, '_');
+    return `dynamic_${base}_${champ.id}`;
+  }
+
+  private clearDynamicTypeControls(): void {
+    if (!this.demandeForm) return;
+    const toRemove = Object.keys(this.demandeForm.controls).filter((k) => k.startsWith('dynamic_'));
+    toRemove.forEach((k) => this.demandeForm.removeControl(k));
+  }
+
+  private addDynamicTypeControls(champs: Array<{ id: number; code: string; obligatoire: boolean; typeChamp: string }>): void {
+    if (!this.demandeForm) return;
+    champs.forEach((champ) => {
+      const controlName = this.dynamicControlName(champ as any);
+      if (this.demandeForm.get(controlName)) return;
+      const validators = champ.obligatoire ? [Validators.required] : [];
+      this.demandeForm.addControl(controlName, this.fb.control('', validators));
+    });
+  }
+
+  private notifyAsync(message: string, type: 'error' | 'warning' | 'info' | 'success', duration = 4000): void {
+    setTimeout(() => this.notificationService.show(message, type, duration), 0);
+  }
+
+  private buildDynamicFieldsPayload(): Array<{ idChampTypeDemande: number; valeur: string }> {
+    const out: Array<{ idChampTypeDemande: number; valeur: string }> = [];
+    for (const champ of this.selectedTypeDemandeChamps) {
+      const idChampTypeDemande = Number(champ.id);
+      if (!Number.isFinite(idChampTypeDemande) || idChampTypeDemande <= 0) continue;
+      const value = this.demandeForm.get(this.dynamicControlName(champ))?.value;
+      if (value === undefined || value === null || String(value).trim() === '') continue;
+      out.push({
+        idChampTypeDemande,
+        valeur: String(value).trim()
+      });
+    }
+    return out;
+  }
   onFileSelected($event: Event) {
     const input = $event.target as HTMLInputElement;
     const files = input.files && input.files.length > 0 ? Array.from(input.files) : [];
@@ -139,11 +306,15 @@ export class AddDemande implements OnInit {
     const codenp = (raw.codenp ?? '').toString().trim();
     const codeapp = (raw.codeapp ?? '').toString().trim();
     const typedemande = (raw.typedemande ?? '').toString().trim();
-    const allowedTypes = new Set(this.demandeTypeOptions.map((t) => t.value));
+    const allowedTypes = new Set(
+      (this.typeDemandes.length > 0
+        ? this.typeDemandes.map((t) => t.code)
+        : this.demandeTypeOptions.map((t) => t.value))
+    );
     if (!allowedTypes.has(typedemande)) {
       this.isSubmitting = false;
       this.demandeForm.enable();
-      this.notificationService.show(
+      this.notifyAsync(
         'Type de demande invalide. Valeurs autorisées : EVOLUTION ou PARAMETRABLE.',
         'error',
         5000
@@ -151,19 +322,43 @@ export class AddDemande implements OnInit {
       this.cdr.detectChanges();
       return;
     }
+
+    const missingRequiredDynamic = this.selectedTypeDemandeChamps.some((champ) => {
+      if (!champ.obligatoire) return false;
+      const value = this.demandeForm.get(this.dynamicControlName(champ))?.value;
+      return value == null || String(value).trim() === '';
+    });
+    if (missingRequiredDynamic) {
+      this.notifyAsync('Veuillez renseigner les champs obligatoires liés au type de demande.', 'warning', 4000);
+      this.demandeForm.markAllAsTouched();
+      this.isSubmitting = false;
+      this.demandeForm.enable();
+      this.cdr.detectChanges();
+      return;
+    }
     const filesToUpload = Array.isArray(this.selectedFiles)
       ? this.selectedFiles.filter((f): f is File => f instanceof File)
       : [];
+    const selectedType = this.typeDemandes.find((t) => t.code === typedemande);
+    const typedemandeId = Number(selectedType?.id);
+    if (!Number.isFinite(typedemandeId)) {
+      this.isSubmitting = false;
+      this.demandeForm.enable();
+      this.notifyAsync('Type de demande invalide: identifiant introuvable.', 'error', 5000);
+      this.cdr.detectChanges();
+      return;
+    }
+    const dynamicFields = this.buildDynamicFieldsPayload();
 
     const payload = {
       objet,
       description,
-      departement: (raw.codeDepartement ?? '').toString().trim(),
-      typedemande: typedemande,
+      typedemande,
+      champs: dynamicFields,
     };
 
     this.demandeService
-      .addDemande(payload, codenp, codeapp)
+      .addDemande(payload, codenp, codeapp, typedemandeId)
       .pipe(
         switchMap((created: any) => {
           const createdId = Number(
@@ -201,9 +396,7 @@ export class AddDemande implements OnInit {
         },
         error: (err) => {
           const msg = err?.error?.message ?? err?.error?.detail ?? err?.message ?? 'Erreur lors de la création de la demande.';
-          setTimeout(() => {
-            this.notificationService.show(String(msg), 'error', 5000);
-          }, 0);
+          this.notifyAsync(String(msg), 'error', 5000);
         },
       });
   }

@@ -467,6 +467,40 @@
   color: #dc2626;
 }
 
+.selected-type-row {
+  background: #f8fafc;
+}
+
+.type-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.type-actions-separator {
+  color: #94a3b8;
+  user-select: none;
+}
+
+.type-actions .btn-link[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  padding: 0;
+}
+
+.icon-action i {
+  font-size: 15px;
+}
+
 /* System Config Grid */
 .system-grid {
   display: grid;
