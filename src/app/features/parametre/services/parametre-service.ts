@@ -187,6 +187,195 @@ export class PartenaireService {
       { headers: { 'Content-Type': 'application/json' } }
     ).pipe(timeout(15000));
   }
+
+  /**
+   * Récupère la liste des statuts finaux.
+   * GET /api/evolution/parametre/liste-statut-final
+   */
+  getListeStatutFinal(): Observable<StatutFinalItem[]> {
+    return this.http.get<StatutFinalItem[]>(
+      `${this.apiUrl}/parametre/liste-statut-final`
+    ).pipe(timeout(15000));
+  }
+
+  /**
+   * Créer un statut final.
+   * POST /api/evolution/parametre/statut-final
+   */
+  createStatutFinal(body: CreateStatutFinalRequest): Observable<StatutFinalItem> {
+    const payload = {
+      id: body.id ?? 0,
+      code: (body.code ?? '').trim(),
+      libelle: (body.libelle ?? '').trim(),
+      active: body.active === true
+    };
+    return this.http.post<StatutFinalItem>(
+      `${this.apiUrl}/parametre/statut-final`,
+      payload,
+      { headers: { 'Content-Type': 'application/json' } }
+    ).pipe(timeout(15000));
+  }
+
+  /**
+   * Met à jour un statut final.
+   * PUT /api/evolution/parametre/statut-final/{id}
+   */
+  updateStatutFinal(id: number, body: CreateStatutFinalRequest): Observable<StatutFinalItem> {
+    const safeId = Number(id);
+    const payload = {
+      id: safeId,
+      code: (body.code ?? '').trim(),
+      libelle: (body.libelle ?? '').trim(),
+      active: body.active === true
+    };
+    return this.http.put<StatutFinalItem>(
+      `${this.apiUrl}/parametre/statut-final/${safeId}`,
+      payload,
+      { headers: { 'Content-Type': 'application/json' } }
+    ).pipe(timeout(15000));
+  }
+
+  /**
+   * Supprime un statut final.
+   * DELETE /api/evolution/parametre/statut-final/{id}
+   */
+  deleteStatutFinal(id: number): Observable<void> {
+    const safeId = Number(id);
+    return this.http.delete<void>(
+      `${this.apiUrl}/parametre/statut-final/${safeId}`
+    ).pipe(timeout(15000));
+  }
+
+  /**
+   * Récupère la liste des types de demande.
+   * GET /api/evolution/typedemande
+   */
+  getListeTypeDemande(): Observable<TypeDemandeItem[]> {
+    return this.http.get<TypeDemandeItem[]>(
+      `${this.apiUrl}/typedemande`
+    ).pipe(timeout(15000));
+  }
+
+  /**
+   * Récupère un type de demande par id.
+   * GET /api/evolution/typedemande/{id}
+   */
+  getTypeDemandeById(id: number): Observable<TypeDemandeItem> {
+    const safeId = Number(id);
+    return this.http.get<TypeDemandeItem>(
+      `${this.apiUrl}/typedemande/${safeId}`
+    ).pipe(timeout(15000));
+  }
+
+  /**
+   * Récupère les champs d'un type de demande.
+   * GET /api/evolution/typedemande/{id}/champs
+   */
+  getTypeDemandeChamps(id: number): Observable<TypeDemandeChampItem[]> {
+    const safeId = Number(id);
+    return this.http.get<TypeDemandeChampItem[]>(
+      `${this.apiUrl}/typedemande/${safeId}/champs`
+    ).pipe(timeout(15000));
+  }
+
+  /**
+   * Créer un type de demande.
+   * POST /api/evolution/typedemande
+   */
+  createTypeDemande(body: CreateTypeDemandeRequest): Observable<TypeDemandeItem> {
+    const payload = {
+      code: (body.code ?? '').trim(),
+      libelle: (body.libelle ?? '').trim(),
+      description: (body.description ?? '').trim()
+    };
+    return this.http.post<TypeDemandeItem>(
+      `${this.apiUrl}/typedemande`,
+      payload,
+      { headers: { 'Content-Type': 'application/json' } }
+    ).pipe(timeout(15000));
+  }
+
+  /**
+   * Met à jour un type de demande.
+   * PUT /api/evolution/typedemande/{id}
+   */
+  updateTypeDemande(id: number, body: CreateTypeDemandeRequest): Observable<TypeDemandeItem> {
+    const safeId = Number(id);
+    const payload = {
+      code: (body.code ?? '').trim(),
+      libelle: (body.libelle ?? '').trim(),
+      description: (body.description ?? '').trim()
+    };
+    return this.http.put<TypeDemandeItem>(
+      `${this.apiUrl}/typedemande/${safeId}`,
+      payload,
+      { headers: { 'Content-Type': 'application/json' } }
+    ).pipe(timeout(15000));
+  }
+
+  /**
+   * Supprime un type de demande.
+   * DELETE /api/evolution/typedemande/{id}
+   */
+  deleteTypeDemande(id: number): Observable<void> {
+    const safeId = Number(id);
+    return this.http.delete<void>(
+      `${this.apiUrl}/typedemande/${safeId}`
+    ).pipe(timeout(15000));
+  }
+
+  /**
+   * Créer / mettre à jour un champ de type de demande.
+   * POST /api/evolution/typedemande/champs/{idChamp}
+   */
+  postTypeDemandeChamp(idChamp: number, body: CreateTypeDemandeChampRequest): Observable<TypeDemandeChampItem> {
+    const safeIdChamp = Number(idChamp);
+    const payload = {
+      code: (body.code ?? '').trim(),
+      libelle: (body.libelle ?? '').trim(),
+      typeChamp: (body.typeChamp ?? '').trim(),
+      obligatoire: body.obligatoire === true,
+      ordre: Number(body.ordre ?? 0),
+      optionsJson: (body.optionsJson ?? '').trim()
+    };
+    return this.http.post<TypeDemandeChampItem>(
+      `${this.apiUrl}/typedemande/champs/${safeIdChamp}`,
+      payload,
+      { headers: { 'Content-Type': 'application/json' } }
+    ).pipe(timeout(15000));
+  }
+
+  /**
+   * Met à jour un champ de type de demande.
+   * PUT /api/evolution/typedemande/champs/{idChamp}
+   */
+  updateTypeDemandeChamp(idChamp: number, body: CreateTypeDemandeChampRequest): Observable<TypeDemandeChampItem> {
+    const safeIdChamp = Number(idChamp);
+    const payload = {
+      code: (body.code ?? '').trim(),
+      libelle: (body.libelle ?? '').trim(),
+      typeChamp: (body.typeChamp ?? '').trim(),
+      obligatoire: body.obligatoire === true,
+      ordre: Number(body.ordre ?? 0),
+      optionsJson: (body.optionsJson ?? '').trim()
+    };
+    return this.http.put<TypeDemandeChampItem>(
+      `${this.apiUrl}/typedemande/champs/${safeIdChamp}`,
+      payload,
+      { headers: { 'Content-Type': 'application/json' } }
+    ).pipe(timeout(15000));
+  }
+
+  /**
+   * Supprime un champ de type de demande.
+   * DELETE /api/evolution/typedemande/champs/{idChamp}
+   */
+  deleteTypeDemandeChamp(idChamp: number): Observable<void> {
+    const safeIdChamp = Number(idChamp);
+    return this.http.delete<void>(
+      `${this.apiUrl}/typedemande/champs/${safeIdChamp}`
+    ).pipe(timeout(15000));
+  }
 }
 
 export interface ApplicationItem {
@@ -201,4 +390,50 @@ export interface CreateAppRequest {
   code: string;
   libelle: string;
   active: boolean;
+}
+
+export interface StatutFinalItem {
+  id?: number;
+  code?: string;
+  libelle?: string;
+  active?: boolean;
+}
+
+export interface CreateStatutFinalRequest {
+  id?: number;
+  code: string;
+  libelle: string;
+  active: boolean;
+}
+
+export interface TypeDemandeItem {
+  id?: number;
+  code?: string;
+  libelle?: string;
+  description?: string;
+}
+
+export interface CreateTypeDemandeRequest {
+  code: string;
+  libelle: string;
+  description: string;
+}
+
+export interface TypeDemandeChampItem {
+  idChamp?: number;
+  code?: string;
+  libelle?: string;
+  typeChamp?: string;
+  obligatoire?: boolean;
+  ordre?: number;
+  optionsJson?: string;
+}
+
+export interface CreateTypeDemandeChampRequest {
+  code: string;
+  libelle: string;
+  typeChamp: string;
+  obligatoire: boolean;
+  ordre: number;
+  optionsJson: string;
 }

@@ -47,6 +47,14 @@
         <i class="bi bi-grid-3x3-gap"></i>
         <span>Applications</span>
       </button>
+      <button class="admin-tab" [class.active]="activeTab === 'final-statuses'" (click)="activeTab = 'final-statuses'" type="button">
+        <i class="bi bi-flag"></i>
+        <span>Statuts finaux</span>
+      </button>
+      <button class="admin-tab" [class.active]="activeTab === 'type-demandes'" (click)="activeTab = 'type-demandes'" type="button">
+        <i class="bi bi-list-check"></i>
+        <span>Types de demande</span>
+      </button>
       <button class="admin-tab" [class.active]="activeTab === 'system'" (click)="activeTab = 'system'" type="button">
         <i class="bi bi-gear"></i>
         <span>Configuration</span>
@@ -172,6 +180,116 @@
       </div>
     </section>
 
+    <!-- FINAL STATUS TAB -->
+    <section class="admin-panel" *ngIf="activeTab === 'final-statuses'">
+      <div class="panel-top">
+        <div class="panel-heading">
+          <h2 class="panel-title">Statuts finaux</h2>
+          <p class="panel-subtitle">Gérez les statuts finaux disponibles pour les demandes.</p>
+        </div>
+        <button class="btn-primary" type="button" (click)="openFinalStatusModal()">
+          <i class="bi bi-plus"></i>
+          Ajouter un statut final
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Libellé</th>
+              <th>Actif</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let status of paginatedFinalStatuses">
+              <td><span class="badge badge-role">{{ status.code || '—' }}</span></td>
+              <td>{{ status.libelle || '—' }}</td>
+              <td>
+                <span class="badge" [class.badge-success]="status.active" [class.badge-warning]="status.active === false">
+                  {{ status.active ? 'Actif' : 'Inactif' }}
+                </span>
+              </td>
+              <td>
+                <button class="btn-icon" type="button" (click)="openFinalStatusModal(status)" title="Modifier">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <button class="btn-icon" type="button" (click)="deleteFinalStatus(status)" title="Supprimer">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination" *ngIf="finalStatuses.length > 0">
+          <span class="pagination-info">
+            {{ (finalStatusCurrentPage - 1) * finalStatusItemsPerPage + 1 }}-{{ Math.min(finalStatusCurrentPage * finalStatusItemsPerPage, finalStatuses.length) }} sur {{ finalStatuses.length }}
+          </span>
+          <div class="pagination-btns">
+            <button type="button" [disabled]="finalStatusCurrentPage === 1" (click)="changeFinalStatusPage(finalStatusCurrentPage - 1)">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <span class="pagination-page">Page {{ finalStatusCurrentPage }}/{{ finalStatusTotalPages }}</span>
+            <button type="button" [disabled]="finalStatusCurrentPage === finalStatusTotalPages" (click)="changeFinalStatusPage(finalStatusCurrentPage + 1)">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="finalStatuses.length === 0">
+          <i class="bi bi-flag"></i>
+          <p>Aucun statut final. Cliquez sur « Ajouter un statut final » pour en créer un.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TYPE DEMANDE TAB -->
+    <section class="admin-panel" *ngIf="activeTab === 'type-demandes'">
+      <div class="panel-top">
+        <div class="panel-heading">
+          <h2 class="panel-title">Types de demande</h2>
+          <p class="panel-subtitle">Gérez les types de demande disponibles (code, libellé, description).</p>
+        </div>
+        <button class="btn-primary" type="button" (click)="openTypeDemandeModal()">
+          <i class="bi bi-plus"></i>
+          Ajouter un type
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Libellé</th>
+              <th>Description</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of typeDemandes">
+              <td><span class="badge badge-role">{{ item.code || '—' }}</span></td>
+              <td>{{ item.libelle || '—' }}</td>
+              <td>{{ item.description || '—' }}</td>
+              <td>
+                <button class="btn-icon" type="button" (click)="openTypeDemandeModal(item)" title="Modifier">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <button class="btn-icon" type="button" (click)="deleteTypeDemande(item)" title="Supprimer">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="empty-state" *ngIf="typeDemandes.length === 0">
+          <i class="bi bi-list-check"></i>
+          <p>Aucun type de demande. Cliquez sur « Ajouter un type » pour en créer un.</p>
+        </div>
+      </div>
+    </section>
+
     <!-- PARTNERS TAB -->
     <section class="admin-panel" *ngIf="activeTab === 'partners'">
       <div class="panel-top">
@@ -234,6 +352,101 @@
         </article>
       </div>
     </section>
+  </div>
+</div>
+
+<!-- TYPE DEMANDE CREATE/EDIT MODAL -->
+<div class="modal-overlay" *ngIf="showTypeDemandeModal" (click)="closeTypeDemandeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        {{ (editingTypeDemande?.id !== null && editingTypeDemande?.id !== undefined && editingTypeDemande?.id !== 0) ? 'Modifier' : 'Ajouter' }} un type de demande
+      </h2>
+      <button class="modal-close" type="button" (click)="closeTypeDemandeModal()">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+    <div class="modal-body" *ngIf="editingTypeDemande">
+      <div class="form-section">
+        <label class="form-label">Code *</label>
+        <input type="text" class="form-control" [(ngModel)]="editingTypeDemande.code" placeholder="Ex: PARAMETRAGE"
+          required>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Libellé *</label>
+        <input type="text" class="form-control" [(ngModel)]="editingTypeDemande.libelle" placeholder="Ex: Paramétrage"
+          required>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" rows="3" [(ngModel)]="editingTypeDemande.description"
+          placeholder="Description du type de demande"></textarea>
+      </div>
+
+      <div class="form-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <label class="form-label" style="margin:0;">Champs du type de demande</label>
+          <button class="btn-secondary" type="button" (click)="addTypeDemandeFieldRow()">
+            <i class="bi bi-plus"></i> Ajouter un champ
+          </button>
+        </div>
+        <div class="empty-state" *ngIf="isLoadingTypeDemandeFields" style="padding:12px;margin-top:10px;">
+          <p>Chargement des champs...</p>
+        </div>
+        <div class="table-container" style="margin-top:10px;overflow:auto;" *ngIf="!isLoadingTypeDemandeFields && editingTypeDemandeFields.length > 0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Libellé</th>
+                <th>Type</th>
+                <th>Obligatoire</th>
+                <th>Ordre</th>
+                <th>Options JSON</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let champ of editingTypeDemandeFields; let i = index">
+                <td><input type="text" class="form-control" [(ngModel)]="champ.code" placeholder="Ex: ENVIRONNEMENT"></td>
+                <td><input type="text" class="form-control" [(ngModel)]="champ.libelle" placeholder="Ex: Environnement"></td>
+                <td>
+                  <select class="form-control" [(ngModel)]="champ.typeChamp">
+                    <option value="">Sélectionner un type</option>
+                    <option *ngFor="let t of typeDemandeFieldTypes" [value]="t">{{ t }}</option>
+                  </select>
+                </td>
+                <td style="text-align:center;">
+                  <input type="checkbox" [(ngModel)]="champ.obligatoire" class="checkbox-input">
+                </td>
+                <td><input type="number" class="form-control" [(ngModel)]="champ.ordre"></td>
+                <td><input type="text" class="form-control" [(ngModel)]="champ.optionsJson" placeholder='Ex: ["DEV","PROD"]'></td>
+                <td>
+                  <button class="btn-icon" type="button" (click)="saveTypeDemandeField(i)" title="Enregistrer ce champ"
+                    [disabled]="champ.isSaving">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                  <button class="btn-icon" type="button" (click)="removeTypeDemandeFieldRow(i)" title="Supprimer la ligne"
+                    [disabled]="champ.isSaving">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="empty-state" *ngIf="!isLoadingTypeDemandeFields && editingTypeDemandeFields.length === 0" style="padding:12px;margin-top:10px;">
+          <p>Aucun champ défini. Cliquez sur « Ajouter un champ ».</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" type="button" (click)="closeTypeDemandeModal()" [disabled]="isSavingTypeDemande">Annuler</button>
+      <button class="btn-primary" type="button" (click)="saveTypeDemande()"
+        [disabled]="isSavingTypeDemande || !editingTypeDemande?.code?.trim() || !editingTypeDemande?.libelle?.trim()">
+        <i class="bi bi-check-lg"></i> Enregistrer
+      </button>
+    </div>
   </div>
 </div>
 
@@ -419,6 +632,46 @@
       <button class="btn-secondary" type="button" (click)="closePartnerModal()">Annuler</button>
       <button class="btn-primary" type="button" (click)="savePartner()"
         [disabled]="isSavingPartner || !editingPartner?.nom || !editingPartner?.emailContact">
+        <i class="bi bi-check-lg"></i> Enregistrer
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- FINAL STATUS CREATE/EDIT MODAL -->
+<div class="modal-overlay" *ngIf="showFinalStatusModal" (click)="closeFinalStatusModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        {{ (editingFinalStatus?.id !== null && editingFinalStatus?.id !== undefined && editingFinalStatus?.id !== 0) ? 'Modifier' : 'Ajouter' }} un statut final
+      </h2>
+      <button class="modal-close" type="button" (click)="closeFinalStatusModal()">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+    <div class="modal-body" *ngIf="editingFinalStatus">
+      <div class="form-section">
+        <label class="form-label">Code *</label>
+        <input type="text" class="form-control" [(ngModel)]="editingFinalStatus.code" placeholder="Ex: LIVRE, PREPROD"
+          required>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Libellé *</label>
+        <input type="text" class="form-control" [(ngModel)]="editingFinalStatus.libelle" placeholder="Ex: Livré"
+          required>
+      </div>
+      <div class="form-section">
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="editingFinalStatus.active" class="checkbox-input">
+          <span class="checkbox-custom"></span>
+          Statut final actif
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" type="button" (click)="closeFinalStatusModal()" [disabled]="isSavingFinalStatus">Annuler</button>
+      <button class="btn-primary" type="button" (click)="saveFinalStatus()"
+        [disabled]="isSavingFinalStatus || !editingFinalStatus?.code?.trim() || !editingFinalStatus?.libelle?.trim()">
         <i class="bi bi-check-lg"></i> Enregistrer
       </button>
     </div>

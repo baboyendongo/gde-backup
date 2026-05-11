@@ -3,7 +3,17 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import { User, UserStatus } from '../../models/users';
-import { PartenaireService, ApplicationItem, CreateAppRequest } from '../../services/parametre-service';
+import {
+  PartenaireService,
+  ApplicationItem,
+  CreateAppRequest,
+  StatutFinalItem,
+  CreateStatutFinalRequest,
+  TypeDemandeItem,
+  CreateTypeDemandeRequest,
+  TypeDemandeChampItem,
+  CreateTypeDemandeChampRequest
+} from '../../services/parametre-service';
 import { CreatePartenaireRequest } from '../../models/partenaire';
 import { NotificationService } from '../../../../services/notification.service';
 import { RolePermissionService } from '../../services/rolepermission.service';
@@ -22,10 +32,10 @@ export class Parametre implements OnInit {
   users: User[] = [];
   filteredUsers: User[] = [];
   searchTerm: string = '';
-  public activeTab: 'users' | 'partners' | 'apps' | 'system' = 'users';
+  public activeTab: 'users' | 'partners' | 'apps' | 'final-statuses' | 'type-demandes' | 'system' = 'users';
   isLoading = true;
   private loadDoneCount = 0;
-  private readonly LOAD_TOTAL = 3; // users, partenaires, applications
+  private readonly LOAD_TOTAL = 5; // users, partenaires, applications, statuts finaux, types demandes
 
   // Pagination
   currentPage: number = 1;
@@ -78,6 +88,38 @@ export class Parametre implements OnInit {
   editingApp: CreateAppRequest | null = null;
   isSavingApp = false;
 
+  // Statuts finaux
+  finalStatuses: StatutFinalItem[] = [];
+  showFinalStatusModal = false;
+  editingFinalStatus: CreateStatutFinalRequest | null = null;
+  isSavingFinalStatus = false;
+  finalStatusCurrentPage: number = 1;
+  finalStatusItemsPerPage: number = 10;
+
+  get paginatedFinalStatuses(): StatutFinalItem[] {
+    const startIndex = (this.finalStatusCurrentPage - 1) * this.finalStatusItemsPerPage;
+    return this.finalStatuses.slice(startIndex, startIndex + this.finalStatusItemsPerPage);
+  }
+
+  get finalStatusTotalPages(): number {
+    return Math.ceil(this.finalStatuses.length / this.finalStatusItemsPerPage) || 1;
+  }
+
+  changeFinalStatusPage(page: number): void {
+    if (page >= 1 && page <= this.finalStatusTotalPages) {
+      this.finalStatusCurrentPage = page;
+    }
+  }
+
+  // Types de demande
+  typeDemandes: TypeDemandeItem[] = [];
+  showTypeDemandeModal = false;
+  editingTypeDemande: (CreateTypeDemandeRequest & { id?: number }) | null = null;
+  editingTypeDemandeFields: Array<(CreateTypeDemandeChampRequest & { idChamp?: number; isSaving?: boolean })> = [];
+  isLoadingTypeDemandeFields = false;
+  isSavingTypeDemande = false;
+  readonly typeDemandeFieldTypes: string[] = ['TEXT', 'TEXTAREA', 'NUMBER', 'DATE', 'DATETIME', 'BOOLEAN', 'SELECT', 'RADIO', 'CHECKBOX', 'EMAIL', 'TEL', 'URL'];
+
   constructor(
     private partenaireService: PartenaireService,
     private notificationService: NotificationService,
@@ -95,6 +137,8 @@ export class Parametre implements OnInit {
       this.loadUsers();
       this.loadPartenaires();
       this.loadApplications();
+      this.loadFinalStatuses();
+      this.loadTypeDemandes();
       this.loadRolesFromDatabase();
       this.initSystemConfigs();
     }, 0);
@@ -120,6 +164,50 @@ export class Parametre implements OnInit {
         console.error('Erreur chargement applications / équipes SI', err);
         this.applications = [];
         this.notificationService.show('Erreur lors du chargement des applications', 'error', 5000);
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadFinalStatuses() {
+    this.partenaireService.getListeStatutFinal().pipe(
+      finalize(() => this.onLoadDone())
+    ).subscribe({
+      next: (list) => {
+        this.finalStatuses = Array.isArray(list)
+          ? list.map((item: any) => this.normalizeFinalStatusItem(item))
+          : [];
+        if (this.finalStatusCurrentPage > this.finalStatusTotalPages) {
+          this.finalStatusCurrentPage = this.finalStatusTotalPages;
+        }
+        if (this.finalStatusCurrentPage < 1) {
+          this.finalStatusCurrentPage = 1;
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erreur chargement statuts finaux', err);
+        this.finalStatuses = [];
+        this.notificationService.show('Erreur lors du chargement des statuts finaux', 'error', 5000);
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadTypeDemandes() {
+    this.partenaireService.getListeTypeDemande().pipe(
+      finalize(() => this.onLoadDone())
+    ).subscribe({
+      next: (list) => {
+        this.typeDemandes = Array.isArray(list)
+          ? list.map((item: any) => this.normalizeTypeDemandeItem(item))
+          : [];
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erreur chargement types de demande', err);
+        this.typeDemandes = [];
+        this.notificationService.show('Erreur lors du chargement des types de demande', 'error', 5000);
         this.cdr.detectChanges();
       }
     });
@@ -191,6 +279,391 @@ export class Parametre implements OnInit {
         );
       }
     });
+  }
+
+  openFinalStatusModal(item?: StatutFinalItem) {
+    const itemId = this.resolveFinalStatusId(item);
+    this.editingFinalStatus = item
+      ? {
+          id: itemId,
+          code: (this.resolveFinalStatusCode(item) || '').toString(),
+          libelle: (this.resolveFinalStatusLibelle(item) || '').toString(),
+          active: item.active !== false
+        }
+      : { id: 0, code: '', libelle: '', active: true };
+    this.showFinalStatusModal = true;
+  }
+
+  closeFinalStatusModal() {
+    this.showFinalStatusModal = false;
+    this.editingFinalStatus = null;
+    this.isSavingFinalStatus = false;
+  }
+
+  saveFinalStatus() {
+    if (!this.editingFinalStatus || !this.editingFinalStatus.code?.trim() || !this.editingFinalStatus.libelle?.trim()) {
+      this.notificationService.show('Code et libellé sont obligatoires', 'warning', 3000);
+      return;
+    }
+
+    const payload: CreateStatutFinalRequest = {
+      id: this.editingFinalStatus.id,
+      code: this.editingFinalStatus.code.trim(),
+      libelle: this.editingFinalStatus.libelle.trim(),
+      active: this.editingFinalStatus.active === true
+    };
+
+    this.isSavingFinalStatus = true;
+    const isUpdate = Number(payload.id) > 0;
+    const request$ = isUpdate && payload.id
+      ? this.partenaireService.updateStatutFinal(payload.id, payload)
+      : this.partenaireService.createStatutFinal(payload);
+
+    request$.subscribe({
+      next: () => {
+        this.isSavingFinalStatus = false;
+        this.notificationService.show(
+          isUpdate ? 'Statut final mis à jour avec succès' : 'Statut final ajouté avec succès',
+          'success',
+          3000
+        );
+        this.closeFinalStatusModal();
+        this.loadFinalStatuses();
+      },
+      error: (err) => {
+        this.isSavingFinalStatus = false;
+        this.notificationService.show(
+          err?.error?.message || err?.message || 'Erreur lors de l\'enregistrement du statut final',
+          'error',
+          5000
+        );
+      }
+    });
+  }
+
+  deleteFinalStatus(item: StatutFinalItem) {
+    const id = this.resolveFinalStatusId(item);
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    const label = this.resolveFinalStatusLibelle(item) || this.resolveFinalStatusCode(item) || `#${id}`;
+    if (!confirm(`Voulez-vous vraiment supprimer le statut final "${label}" ?`)) {
+      return;
+    }
+
+    this.partenaireService.deleteStatutFinal(id).subscribe({
+      next: () => {
+        this.notificationService.show('Statut final supprimé avec succès', 'success', 3000);
+        this.loadFinalStatuses();
+      },
+      error: (err) => {
+        this.notificationService.show(
+          err?.error?.message || err?.message || 'Erreur lors de la suppression du statut final',
+          'error',
+          5000
+        );
+      }
+    });
+  }
+
+  private normalizeFinalStatusItem(item: any): StatutFinalItem {
+    const activeCandidate = item?.active ?? item?.actif ?? item?.enabled ?? item?.isActive ?? item?.etat;
+    const active = typeof activeCandidate === 'boolean'
+      ? activeCandidate
+      : String(activeCandidate ?? '').toLowerCase() === 'actif' || String(activeCandidate ?? '') === '1';
+
+    return {
+      id: this.resolveFinalStatusId(item),
+      code: this.resolveFinalStatusCode(item),
+      libelle: this.resolveFinalStatusLibelle(item),
+      active
+    };
+  }
+
+  private resolveFinalStatusId(item: any): number {
+    const raw = item?.id ?? item?.statutFinalId ?? item?.idStatutFinal ?? item?.statutfinalId;
+    const id = Number(raw);
+    return Number.isFinite(id) ? id : 0;
+  }
+
+  private resolveFinalStatusCode(item: any): string {
+    return String(item?.code ?? item?.codeStatutFinal ?? item?.codestatutfinal ?? '').trim();
+  }
+
+  private resolveFinalStatusLibelle(item: any): string {
+    return String(item?.libelle ?? item?.label ?? item?.nom ?? '').trim();
+  }
+
+  openTypeDemandeModal(item?: TypeDemandeItem) {
+    const id = this.resolveTypeDemandeId(item);
+    if (id > 0) {
+      this.showTypeDemandeModal = true;
+      this.isLoadingTypeDemandeFields = true;
+      this.editingTypeDemande = { id, code: '', libelle: '', description: '' };
+      this.editingTypeDemandeFields = [];
+      this.partenaireService.getTypeDemandeById(id).subscribe({
+        next: (data) => {
+          this.editingTypeDemande = this.normalizeTypeDemandeItem(data);
+          // Chargement explicite des champs depuis GET /typedemande/{id}/champs
+          this.partenaireService.getTypeDemandeChamps(id).subscribe({
+            next: (fields) => {
+              this.editingTypeDemandeFields = this.normalizeTypeDemandeFieldsResponse(fields);
+              this.isLoadingTypeDemandeFields = false;
+              this.cdr.detectChanges();
+            },
+            error: () => {
+              // Fallback de compatibilité si le backend embarque déjà les champs dans /typedemande/{id}
+              this.editingTypeDemandeFields = this.extractTypeDemandeFields(data);
+              this.isLoadingTypeDemandeFields = false;
+              this.cdr.detectChanges();
+            }
+          });
+        },
+        error: (err) => {
+          this.isLoadingTypeDemandeFields = false;
+          this.notificationService.show(
+            err?.error?.message || err?.message || 'Erreur lors du chargement du type de demande',
+            'error',
+            5000
+          );
+        }
+      });
+      return;
+    }
+
+    this.editingTypeDemande = { id: 0, code: '', libelle: '', description: '' };
+    this.editingTypeDemandeFields = [];
+    this.isLoadingTypeDemandeFields = false;
+    this.showTypeDemandeModal = true;
+  }
+
+  closeTypeDemandeModal() {
+    this.showTypeDemandeModal = false;
+    this.editingTypeDemande = null;
+    this.editingTypeDemandeFields = [];
+    this.isLoadingTypeDemandeFields = false;
+    this.isSavingTypeDemande = false;
+  }
+
+  saveTypeDemande() {
+    if (!this.editingTypeDemande || !this.editingTypeDemande.code?.trim() || !this.editingTypeDemande.libelle?.trim()) {
+      this.notificationService.show('Code et libellé sont obligatoires', 'warning', 3000);
+      return;
+    }
+
+    const payload: CreateTypeDemandeRequest = {
+      code: this.editingTypeDemande.code.trim(),
+      libelle: this.editingTypeDemande.libelle.trim(),
+      description: (this.editingTypeDemande.description ?? '').trim()
+    };
+
+    this.isSavingTypeDemande = true;
+    const isUpdate = Number(this.editingTypeDemande.id) > 0;
+    const request$ = isUpdate
+      ? this.partenaireService.updateTypeDemande(Number(this.editingTypeDemande.id), payload)
+      : this.partenaireService.createTypeDemande(payload);
+
+    request$.subscribe({
+      next: () => {
+        this.isSavingTypeDemande = false;
+        this.notificationService.show(
+          isUpdate ? 'Type de demande mis à jour avec succès' : 'Type de demande ajouté avec succès',
+          'success',
+          3000
+        );
+        this.closeTypeDemandeModal();
+        this.loadTypeDemandes();
+      },
+      error: (err) => {
+        this.isSavingTypeDemande = false;
+        this.notificationService.show(
+          err?.error?.message || err?.message || 'Erreur lors de l\'enregistrement du type de demande',
+          'error',
+          5000
+        );
+      }
+    });
+  }
+
+  deleteTypeDemande(item: TypeDemandeItem) {
+    const id = this.resolveTypeDemandeId(item);
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    const label = this.resolveTypeDemandeLibelle(item) || this.resolveTypeDemandeCode(item) || `#${id}`;
+    if (!confirm(`Voulez-vous vraiment supprimer le type de demande "${label}" ?`)) {
+      return;
+    }
+
+    this.partenaireService.deleteTypeDemande(id).subscribe({
+      next: () => {
+        this.notificationService.show('Type de demande supprimé avec succès', 'success', 3000);
+        this.loadTypeDemandes();
+      },
+      error: (err) => {
+        this.notificationService.show(
+          err?.error?.message || err?.message || 'Erreur lors de la suppression du type de demande',
+          'error',
+          5000
+        );
+      }
+    });
+  }
+
+  private normalizeTypeDemandeItem(item: any): CreateTypeDemandeRequest & { id?: number } {
+    return {
+      id: this.resolveTypeDemandeId(item),
+      code: this.resolveTypeDemandeCode(item),
+      libelle: this.resolveTypeDemandeLibelle(item),
+      description: String(item?.description ?? item?.desc ?? '').trim()
+    };
+  }
+
+  private resolveTypeDemandeId(item: any): number {
+    const raw = item?.id ?? item?.typeDemandeId ?? item?.idTypeDemande;
+    const id = Number(raw);
+    return Number.isFinite(id) ? id : 0;
+  }
+
+  private resolveTypeDemandeCode(item: any): string {
+    return String(item?.code ?? item?.codedemande ?? '').trim();
+  }
+
+  private resolveTypeDemandeLibelle(item: any): string {
+    return String(item?.libelle ?? item?.label ?? item?.nom ?? '').trim();
+  }
+
+  addTypeDemandeFieldRow() {
+    this.editingTypeDemandeFields = [
+      ...this.editingTypeDemandeFields,
+      {
+        idChamp: 0,
+        code: '',
+        libelle: '',
+        typeChamp: '',
+        obligatoire: false,
+        ordre: this.editingTypeDemandeFields.length + 1,
+        optionsJson: '',
+        isSaving: false
+      }
+    ];
+  }
+
+  removeTypeDemandeFieldRow(index: number) {
+    if (index < 0 || index >= this.editingTypeDemandeFields.length) return;
+    const row = this.editingTypeDemandeFields[index];
+    const idChamp = Number(row?.idChamp ?? 0);
+
+    // Si le champ n'est pas encore persisté, suppression locale uniquement.
+    if (!Number.isFinite(idChamp) || idChamp <= 0) {
+      this.editingTypeDemandeFields.splice(index, 1);
+      this.editingTypeDemandeFields = [...this.editingTypeDemandeFields];
+      return;
+    }
+
+    row.isSaving = true;
+    this.editingTypeDemandeFields = [...this.editingTypeDemandeFields];
+    this.partenaireService.deleteTypeDemandeChamp(idChamp).subscribe({
+      next: () => {
+        this.editingTypeDemandeFields.splice(index, 1);
+        this.editingTypeDemandeFields = [...this.editingTypeDemandeFields];
+        this.notificationService.show('Champ supprimé avec succès', 'success', 3000);
+      },
+      error: (err) => {
+        row.isSaving = false;
+        this.editingTypeDemandeFields = [...this.editingTypeDemandeFields];
+        this.notificationService.show(
+          err?.error?.message || err?.message || 'Erreur lors de la suppression du champ',
+          'error',
+          5000
+        );
+      }
+    });
+  }
+
+  saveTypeDemandeField(index: number) {
+    const row = this.editingTypeDemandeFields[index];
+    if (!row) return;
+    if (!row.code?.trim() || !row.libelle?.trim() || !row.typeChamp?.trim()) {
+      this.notificationService.show('Code, libellé et type de champ sont obligatoires', 'warning', 3500);
+      return;
+    }
+    const typeDemandeId = Number(this.editingTypeDemande?.id ?? 0);
+    if (typeDemandeId <= 0) {
+      this.notificationService.show('Enregistrez d’abord le type de demande avant d’ajouter des champs.', 'warning', 4000);
+      return;
+    }
+
+    const payload: CreateTypeDemandeChampRequest = {
+      code: row.code.trim(),
+      libelle: row.libelle.trim(),
+      typeChamp: row.typeChamp.trim(),
+      obligatoire: row.obligatoire === true,
+      ordre: Number(row.ordre ?? 0),
+      optionsJson: (row.optionsJson ?? '').trim()
+    };
+    const idChamp = Number(row.idChamp ?? 0);
+    row.isSaving = true;
+    const request$ = idChamp > 0
+      ? this.partenaireService.updateTypeDemandeChamp(idChamp, payload)
+      : this.partenaireService.postTypeDemandeChamp(typeDemandeId, payload);
+    request$.subscribe({
+      next: (saved) => {
+        row.isSaving = false;
+        row.idChamp = this.resolveTypeDemandeFieldId(saved) || idChamp;
+        this.editingTypeDemandeFields = [...this.editingTypeDemandeFields];
+        this.notificationService.show('Champ enregistré avec succès', 'success', 3000);
+      },
+      error: (err) => {
+        row.isSaving = false;
+        this.editingTypeDemandeFields = [...this.editingTypeDemandeFields];
+        this.notificationService.show(
+          err?.error?.message || err?.message || 'Erreur lors de l\'enregistrement du champ',
+          'error',
+          5000
+        );
+      }
+    });
+  }
+
+  private extractTypeDemandeFields(item: any): Array<CreateTypeDemandeChampRequest & { idChamp?: number; isSaving?: boolean }> {
+    const rawFields =
+      item?.champs ??
+      item?.fields ??
+      item?.typeDemandeChamps ??
+      item?.champsTypeDemande ??
+      [];
+    if (!Array.isArray(rawFields)) return [];
+    return rawFields.map((field: any) => this.normalizeTypeDemandeField(field));
+  }
+
+  private normalizeTypeDemandeFieldsResponse(payload: any): Array<CreateTypeDemandeChampRequest & { idChamp?: number; isSaving?: boolean }> {
+    const candidate =
+      Array.isArray(payload) ? payload :
+      payload?.content ??
+      payload?.data ??
+      payload?.items ??
+      payload?.champs ??
+      [];
+    if (!Array.isArray(candidate)) return [];
+    return candidate.map((field: any) => this.normalizeTypeDemandeField(field));
+  }
+
+  private normalizeTypeDemandeField(field: any): CreateTypeDemandeChampRequest & { idChamp?: number; isSaving?: boolean } {
+    return {
+      idChamp: this.resolveTypeDemandeFieldId(field),
+      code: String(field?.code ?? '').trim(),
+      libelle: String(field?.libelle ?? field?.label ?? '').trim(),
+      typeChamp: String(field?.typeChamp ?? field?.type ?? '').trim(),
+      obligatoire: field?.obligatoire === true || String(field?.obligatoire ?? '').toLowerCase() === 'true',
+      ordre: Number(field?.ordre ?? 0),
+      optionsJson: String(field?.optionsJson ?? '').trim(),
+      isSaving: false
+    };
+  }
+
+  private resolveTypeDemandeFieldId(field: any): number {
+    const raw = field?.idChamp ?? field?.champId ?? field?.id;
+    const id = Number(raw);
+    return Number.isFinite(id) ? id : 0;
   }
 
   private initSystemConfigs() {

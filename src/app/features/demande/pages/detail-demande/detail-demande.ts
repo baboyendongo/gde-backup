@@ -32,7 +32,9 @@ export class DetailDemande implements OnInit {
   validationType: 'VALIDATION' | 'REJET' = 'VALIDATION';
   openResolueModal = false;
   resolueCode = '';
+  resolueCommentaire = '';
   readonly resolueCodes: string[] = ['LIVRE', 'TEST', 'PREPROD'];
+  availableFinalStatuses: any[] = [];
   isSubmittingResolue = false;
   isResoumitting = false;
   isSubmittingInitialDemande = false;
@@ -60,6 +62,15 @@ export class DetailDemande implements OnInit {
         },
         error: () => {
           this.availableStatuses = [];
+        }
+      });
+      this.demandeService.getListeStatutFinal().subscribe({
+        next: (list) => {
+          this.availableFinalStatuses = Array.isArray(list) ? list : [];
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.availableFinalStatuses = [];
         }
       });
 
@@ -1283,12 +1294,14 @@ canEscalateToPartenaire(): boolean {
 
     this.openResolueModal = true;
     this.resolueCode = availableCodes[0];
+    this.resolueCommentaire = '';
     this.isSubmittingResolue = false;
   }
 
   closeResolueModal(): void {
     this.openResolueModal = false;
     this.resolueCode = '';
+    this.resolueCommentaire = '';
     this.isSubmittingResolue = false;
   }
 
@@ -1298,6 +1311,10 @@ canEscalateToPartenaire(): boolean {
     }
     if (!this.resolueCode?.trim()) {
       this.notificationService.show('Veuillez choisir un statut (LIVRE, TEST ou PREPROD).', 'warning', 3500);
+      return;
+    }
+    if (!this.resolueCommentaire?.trim()) {
+      this.notificationService.show('Veuillez saisir un commentaire.', 'warning', 3500);
       return;
     }
     this.isSubmittingResolue = true;
@@ -1310,8 +1327,19 @@ canEscalateToPartenaire(): boolean {
       this.notificationService.show('Transition de statut final non autorisée.', 'warning', 3500);
       return;
     }
+    const selectedStatus = this.findFinalStatusByCode(code);
+    const idStatutFinal = this.resolveFinalStatusId(selectedStatus);
+    if (!idStatutFinal) {
+      this.isSubmittingResolue = false;
+      this.notificationService.show(
+        `Impossible de trouver l'identifiant du statut final "${code}". Vérifiez le paramétrage.`,
+        'warning',
+        4500
+      );
+      return;
+    }
 
-    this.demandeService.marquerResolue(id, code).subscribe({
+    this.demandeService.marquerResolue(id, idStatutFinal, this.resolueCommentaire).subscribe({
       next: (response) => {
         const msg =
           (response?.message ?? response?.detail ?? `Statut mis à jour vers ${code}.`) as string;
@@ -1387,6 +1415,21 @@ canEscalateToPartenaire(): boolean {
     // Première affectation du statut final (demande d'évolution validée) :
     // on commence par TEST pour respecter le workflow backend.
     return ['TEST'];
+  }
+
+  private findFinalStatusByCode(code: string): any | null {
+    const wanted = (code ?? '').trim().toUpperCase();
+    if (!wanted) return null;
+    return (this.availableFinalStatuses || []).find((item: any) => {
+      const itemCode = String(item?.code ?? item?.codeStatutFinal ?? '').trim().toUpperCase();
+      return itemCode === wanted;
+    }) ?? null;
+  }
+
+  private resolveFinalStatusId(item: any): number {
+    const raw = item?.id ?? item?.idStatutFinal ?? item?.statutFinalId ?? item?.statutfinalId;
+    const id = Number(raw);
+    return Number.isFinite(id) && id > 0 ? id : 0;
   }
 
   private getCurrentFinalStatusCode(): string {
